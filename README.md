@@ -109,6 +109,13 @@ uv run inference.py -h
 Use the `--threshold` argument to specify the confidence threshold and the `--max_number_boxes` argument to limit the maximum number of bounding boxes. Also, add `--output` option to specify the output file name and extension if needed (default: output.jpg)
 </details>
 
+## Version Compatibility
+
+| Repo Tag | rfdetr Version | Status |
+|--------|----------------|--------|
+| v1.0-rfdetr1.3.0 | [1.3.0](https://github.com/roboflow/rf-detr/tree/1.3.0) | Stable |
+| main | >=[1.4.0](https://github.com/roboflow/rf-detr/tree/1.4.0) | In progress |
+
 ## License
 
 This repository is licensed under the MIT License. See [license file](LICENSE) for more details.

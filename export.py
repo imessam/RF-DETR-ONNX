@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------
 # MIT License
-# Copyright (c) 2025 PierreMarieCurie
+# Copyright (c) 2026 PierreMarieCurie
 #
 # Portions of this file use RF-DETR
 # Copyright (c) Roboflow

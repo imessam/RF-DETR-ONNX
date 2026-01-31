@@ -79,6 +79,7 @@ def load_rfdetr_model(cpkt: str):
                 f"\n{'='*80}\n"
                 f"WARNING: The model '{model_class.__name__}' requires accepting the platform model license.\n"
                 f"License URL: https://roboflow.com/platform-model-license-1-0\n"
+                f"These models require a commercial license to use in commercial applications.\n"
                 f"By loading this model, you are agreeing to the terms of the license.\n"
                 f"{'='*80}",
                 UserWarning,

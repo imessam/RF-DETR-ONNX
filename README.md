@@ -95,7 +95,7 @@ Use the `--model-name` argument to specify the output ONNX file, and add the `--
 
 Below is an example showing how to perform inference on a single image:
 
-``` Python
+``` python
 from rfdetr_onnx import RFDETR_ONNX
 
 # Get model and image
@@ -130,18 +130,18 @@ Use the `--threshold` argument to specify the confidence threshold and the `--ma
 | Repo Tag | rfdetr Version | Status |
 |--------|----------------|--------|
 | v1.0-rfdetr1.3.0 | [1.3.0](https://github.com/roboflow/rf-detr/tree/1.3.0) | Stable |
-| main | ==[1.4.1](https://github.com/roboflow/rf-detr/tree/1.4.1) | In progress |
+| main | [1.4.1](https://github.com/roboflow/rf-detr/tree/1.4.1) | In progress |
 
 ## License
 
 This repository is licensed under the MIT License. See [license file](LICENSE) for more details.
 
-However, some parts of the code are derived from third-party software licensed under the Apache License 2.0. Below are the details:
+However, some parts of the code are derived from Roboflow software. Below are the details:
 
-- RF-DETR pretrained weights and all rfdetr package in export.py (Copyright 2025 Roboflow): [link](https://github.com/roboflow/rf-detr/blob/1.3.0/rfdetr/detr.py#L42)
-- _postprocess method of RFDETR_ONNX class in rfdetr_onnx.py.models.lwdetr.py (Copyright 2025 Roboflow): [link](https://github.com/roboflow/rf-detr/blob/1.3.0/rfdetr/models/lwdetr.py#L708) 
+- **Apache License 2.0** ([reference](https://www.apache.org/licenses/LICENSE-2.0)): RF-DETR models and pretrained weights (except `rfdetr-xlarge` and `rfdetr-2xlarge`) and all `rfdetr` Python package.
+- **Platform Model License 1.0 (PML-1.0)** ([reference](https://roboflow.com/platform-model-license-1-0)): `rfdetr-xlarge` and `rfdetr-2xlarge` models and pretrained weights.
 
-Apache License 2.0 reference: https://www.apache.org/licenses/LICENSE-2.0
+More information about Roboflow model license [here](https://roboflow.com/licensing).
 
 ## Acknowledgements
 - Thanks to the **Roboflow** team and everyone involved in the development of RF-DETR, particularly for sharing a state-of-the-art model under a permissive free software license.

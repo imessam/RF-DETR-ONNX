@@ -1,11 +1,6 @@
 # ------------------------------------------------------------------------
 # MIT License
 # Copyright (c) 2026 PierreMarieCurie
-#
-# Portions of this file are adapted from RF-DETR
-# Copyright (c) Roboflow
-# Licensed under the Apache License, Version 2.0
-# See https://www.apache.org/licenses/LICENSE-2.0 for details.
 # ------------------------------------------------------------------------
 
 import io

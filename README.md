@@ -43,7 +43,7 @@ uv sync
 ```bash
 pip install --upgrade .
 ```
-Make sure to install Python 3.9+ on your local or virtual environment.
+Make sure to install Python 3.10+ on your local or virtual environment.
 </details>
 
 ## Model to ONNX format
@@ -52,12 +52,28 @@ Make sure to install Python 3.9+ on your local or virtual environment.
 
 Roboflow provides pre-trained RF-DETR models on the [COCO](https://cocodataset.org/#home) and [Objects365](https://www.objects365.org/overview.html) datasets. We have already converted some of these models to the ONNX format for you, which you can directly download from [Hugging Face](https://huggingface.co/PierreMarieCurie/rf-detr-onnx).
 
-Note that this corresponds to [rf-detr version 1.3.0](https://github.com/roboflow/rf-detr/tree/1.3.0):
+Note that this corresponds to [rf-detr version 1.4.1](https://github.com/roboflow/rf-detr/tree/1.4.1):
 - **Object detection**:
-    - [rf-detr-base](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-coco.onnx), [rf-detr-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large.onnx), [rf-detr-nano](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.onnx), [rf-detr-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-small.onnx) and [rf-detr-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-medium.onnx): different checkpoints trained on COCO dataset
-    - [rf-detr-base-o365](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-o365.onnx): base checkpoint trained on Objects365 dataset
-- **Instance segmentation**
-    - [rf-detr-seg-preview](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-preview.onnx): trained on COCO dataset
+  - Trained on COCO dataset:
+    - [rf-detr-nano](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.onnx)
+    - [rf-detr-base](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-coco.onnx)
+    - [rf-detr-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-small.onnx)
+    - [rf-detr-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-medium.onnx)
+    - [rf-detr-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large.onnx) (**DEPRECATED**)
+    - [rf-detr-large-2026](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large-2026.onnx)
+    - [rf-detr-xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-xlarge.onnx)
+    - [rf-detr-2xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-xxlarge.onnx)
+  - Trained on Objects365 dataset:
+    - [rf-detr-base-o365](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-o365.onnx)
+- **Instance segmentation** (train on COCO dataset)
+    - [rf-detr-seg-preview](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-preview.onnx)
+    - [rf-detr-seg-nano](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-nano.onnx)
+    - [rf-detr-seg-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-small.onnx)
+    - [rf-detr-seg-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-medium.onnx)
+    - [rf-detr-seg-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-large.onnx)
+    - [rf-detr-seg-xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-xlarge.onnx)
+    - [rf-detr-seg-2xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-xxlarge.onnx)
+    
 
 ### Converting 
 
@@ -79,7 +95,7 @@ Use the `--model-name` argument to specify the output ONNX file, and add the `--
 
 Below is an example showing how to perform inference on a single image:
 
-``` Python
+``` python
 from rfdetr_onnx import RFDETR_ONNX
 
 # Get model and image
@@ -109,16 +125,23 @@ uv run inference.py -h
 Use the `--threshold` argument to specify the confidence threshold and the `--max_number_boxes` argument to limit the maximum number of bounding boxes. Also, add `--output` option to specify the output file name and extension if needed (default: output.jpg)
 </details>
 
+## Version Compatibility
+
+| Repo Tag | rfdetr Version | Status |
+|--------|----------------|--------|
+| v1.0-rfdetr1.3.0 | [1.3.0](https://github.com/roboflow/rf-detr/tree/1.3.0) | Stable |
+| main | [1.4.1](https://github.com/roboflow/rf-detr/tree/1.4.1) | In progress |
+
 ## License
 
 This repository is licensed under the MIT License. See [license file](LICENSE) for more details.
 
-However, some parts of the code are derived from third-party software licensed under the Apache License 2.0. Below are the details:
+However, some parts of the code are derived from Roboflow software. Below are the details:
 
-- RF-DETR pretrained weights and all rfdetr package in export.py (Copyright 2025 Roboflow): [link](https://github.com/roboflow/rf-detr/blob/1.3.0/rfdetr/detr.py#L42)
-- _postprocess method of RFDETR_ONNX class in rfdetr_onnx.py.models.lwdetr.py (Copyright 2025 Roboflow): [link](https://github.com/roboflow/rf-detr/blob/1.3.0/rfdetr/models/lwdetr.py#L708) 
+- **Apache License 2.0** ([reference](https://www.apache.org/licenses/LICENSE-2.0)): RF-DETR models and pretrained weights (except `rfdetr-xlarge` and `rfdetr-2xlarge`) and all `rfdetr` Python package.
+- **Platform Model License 1.0 (PML-1.0)** ([reference](https://roboflow.com/platform-model-license-1-0)): `rfdetr-xlarge` and `rfdetr-2xlarge` models and pretrained weights.
 
-Apache License 2.0 reference: https://www.apache.org/licenses/LICENSE-2.0
+More information about Roboflow model licensing [here](https://roboflow.com/licensing).
 
 ## Acknowledgements
 - Thanks to the **Roboflow** team and everyone involved in the development of RF-DETR, particularly for sharing a state-of-the-art model under a permissive free software license.

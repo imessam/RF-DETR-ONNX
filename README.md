@@ -141,7 +141,7 @@ However, some parts of the code are derived from Roboflow software. Below are th
 - **Apache License 2.0** ([reference](https://www.apache.org/licenses/LICENSE-2.0)): RF-DETR models and pretrained weights (except `rfdetr-xlarge` and `rfdetr-2xlarge`) and all `rfdetr` Python package.
 - **Platform Model License 1.0 (PML-1.0)** ([reference](https://roboflow.com/platform-model-license-1-0)): `rfdetr-xlarge` and `rfdetr-2xlarge` models and pretrained weights.
 
-More information about Roboflow model license [here](https://roboflow.com/licensing).
+More information about Roboflow model licensing [here](https://roboflow.com/licensing).
 
 ## Acknowledgements
 - Thanks to the **Roboflow** team and everyone involved in the development of RF-DETR, particularly for sharing a state-of-the-art model under a permissive free software license.

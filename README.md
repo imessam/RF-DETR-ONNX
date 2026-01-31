@@ -52,12 +52,28 @@ Make sure to install Python 3.9+ on your local or virtual environment.
 
 Roboflow provides pre-trained RF-DETR models on the [COCO](https://cocodataset.org/#home) and [Objects365](https://www.objects365.org/overview.html) datasets. We have already converted some of these models to the ONNX format for you, which you can directly download from [Hugging Face](https://huggingface.co/PierreMarieCurie/rf-detr-onnx).
 
-Note that this corresponds to [rf-detr version 1.3.0](https://github.com/roboflow/rf-detr/tree/1.3.0):
+Note that this corresponds to [rf-detr version 1.4.1](https://github.com/roboflow/rf-detr/tree/1.4.1):
 - **Object detection**:
-    - [rf-detr-base](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-coco.onnx), [rf-detr-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large.onnx), [rf-detr-nano](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.onnx), [rf-detr-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-small.onnx) and [rf-detr-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-medium.onnx): different checkpoints trained on COCO dataset
-    - [rf-detr-base-o365](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-o365.onnx): base checkpoint trained on Objects365 dataset
-- **Instance segmentation**
-    - [rf-detr-seg-preview](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-preview.onnx): trained on COCO dataset
+  - Trained on COCO dataset:
+    - [rf-detr-nano](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.onnx)
+    - [rf-detr-base](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-coco.onnx)
+    - [rf-detr-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-small.onnx)
+    - [rf-detr-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-medium.onnx)
+    - [rf-detr-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large.onnx) (**DEPRECATED**)
+    - [rf-detr-large-2026](TO DO)
+    - [rf-detr-xlarge](to do)
+    - [rf-detr-xxlarge](to do)
+  - Trained on Objects365 dataset:
+    - [rf-detr-base-o365](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-o365.onnx)
+- **Instance segmentation** (train on COCO dataset)
+    - [rf-detr-seg-preview](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-preview.onnx)
+    - [rf-detr-seg-nano](to do)
+    - [rf-detr-seg-small](to do)
+    - [rf-detr-seg-medium](to do)
+    - [rf-detr-seg-large](to do)
+    - [rf-detr-seg-xlarge](to do)
+    - [rf-detr-seg-xxlarge](to do)
+    
 
 ### Converting 
 
@@ -114,7 +130,7 @@ Use the `--threshold` argument to specify the confidence threshold and the `--ma
 | Repo Tag | rfdetr Version | Status |
 |--------|----------------|--------|
 | v1.0-rfdetr1.3.0 | [1.3.0](https://github.com/roboflow/rf-detr/tree/1.3.0) | Stable |
-| main | >=[1.4.0](https://github.com/roboflow/rf-detr/tree/1.4.0) | In progress |
+| main | ==[1.4.1](https://github.com/roboflow/rf-detr/tree/1.4.1) | In progress |
 
 ## License
 

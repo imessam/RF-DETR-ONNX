@@ -60,19 +60,19 @@ Note that this corresponds to [rf-detr version 1.4.1](https://github.com/roboflo
     - [rf-detr-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-small.onnx)
     - [rf-detr-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-medium.onnx)
     - [rf-detr-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large.onnx) (**DEPRECATED**)
-    - [rf-detr-large-2026](TO DO)
-    - [rf-detr-xlarge](to do)
-    - [rf-detr-xxlarge](to do)
+    - [rf-detr-large-2026](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large-2026.onnx)
+    - [rf-detr-xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-xlarge.onnx)
+    - [rf-detr-2xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-xxlarge.onnx)
   - Trained on Objects365 dataset:
     - [rf-detr-base-o365](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-o365.onnx)
 - **Instance segmentation** (train on COCO dataset)
     - [rf-detr-seg-preview](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-preview.onnx)
-    - [rf-detr-seg-nano](to do)
-    - [rf-detr-seg-small](to do)
-    - [rf-detr-seg-medium](to do)
-    - [rf-detr-seg-large](to do)
-    - [rf-detr-seg-xlarge](to do)
-    - [rf-detr-seg-xxlarge](to do)
+    - [rf-detr-seg-nano](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-nano.onnx)
+    - [rf-detr-seg-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-small.onnx)
+    - [rf-detr-seg-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-medium.onnx)
+    - [rf-detr-seg-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-large.onnx)
+    - [rf-detr-seg-xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-xlarge.onnx)
+    - [rf-detr-seg-2xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-xxlarge.onnx)
     
 
 ### Converting 

@@ -43,7 +43,7 @@ uv sync
 ```bash
 pip install --upgrade .
 ```
-Make sure to install Python 3.9+ on your local or virtual environment.
+Make sure to install Python 3.10+ on your local or virtual environment.
 </details>
 
 ## Model to ONNX format

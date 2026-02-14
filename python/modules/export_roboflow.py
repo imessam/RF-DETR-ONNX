@@ -2,18 +2,18 @@ import argparse
 import sys
 import os 
 
-base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
+base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 if base_path not in sys.path:
     sys.path.insert(0, base_path)
 
-from rfdetr import RFDETRNano, RFDETRSmall, RFDETRBase, RFDETRMedium, RFDETRLargeNew
+from rfdetr import RFDETRNano, RFDETRSmall, RFDETRBase, RFDETRMedium, RFDETRLarge
 
 MODELS = {
     "nano": RFDETRNano,
     "small": RFDETRSmall,
     "base": RFDETRBase,
     "medium": RFDETRMedium,
-    "large": RFDETRLargeNew
+    "large": RFDETRLarge
 }
 
 def parse_args():

@@ -6,6 +6,7 @@ readme = "README.MD"
 requires-python = ">=3.10"
 dependencies = [
     "numpy",
+    "opencv-python",
     "onnxruntime-gpu>1.17",
     "pillow",
     "pytest>=9.0.2",
@@ -13,4 +14,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-export-tools = ["rfdetr==1.4.1", "rfdetr[onnxexport]", "onnx==1.19.0", "onnxsim==0.4.36", "onnxscript", "torch==2.8.0"]
+gpu = ["onnxruntime-gpu>1.17"]
+cpu = ["onnxruntime>1.17"]
+export-tools = ["rfdetr", "rfdetr[onnxexport]", "onnx==1.19.0", "onnxsim==0.4.36", "onnxscript", "torch==2.8.0"]

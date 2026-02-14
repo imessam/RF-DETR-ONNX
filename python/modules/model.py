@@ -3,13 +3,21 @@
 # Copyright (c) 2026 PierreMarieCurie
 # ------------------------------------------------------------------------
 
+import sys
+import os 
+
+base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+if base_path not in sys.path:
+    sys.path.insert(0, base_path)
+
 import numpy as np
 import random
 import time
+import cv2
 from typing import Optional
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from .onnx_runtime import OnnxRuntimeSession
-from .utils import open_image, sigmoid, box_cxcywh_to_xyxyn
+from .utils import sigmoid, box_cxcywh_to_xyxyn
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 DEFAULT_MAX_NUMBER_BOXES = 300
@@ -36,21 +44,24 @@ class RFDETRModel:
         self.means = np.array(self.MEANS, dtype=np.float32).reshape(3, 1, 1)
         self.stds = np.array(self.STDS, dtype=np.float32).reshape(3, 1, 1)
 
-    def _preprocess(self, image: Image.Image) -> np.ndarray:
+    def _preprocess(self, image: np.ndarray) -> np.ndarray:
         """
         Preprocess the input image for inference.
 
         Args:
-            image (Image.Image): Input image.
+            image (np.ndarray): Input image (H, W, C) in BGR format.
 
         Returns:
             np.ndarray: Preprocessed image batch (1, C, H, W).
         """
-        # Resize the image to the model's input size
-        image = image.resize((self.input_width, self.input_height))
+        # Convert BGR (OpenCV) to RGB
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # Convert image to numpy array and normalize pixel values
-        image = np.array(image).astype(np.float32) / 255.0
+        # Resize the image to the model's input size
+        image = cv2.resize(image, (self.input_width, self.input_height))
+
+        # Convert image to float32 and normalize pixel values
+        image = image.astype(np.float32) / 255.0
 
         # Change dimensions from HWC to CHW before normalization
         image = np.transpose(image, (2, 0, 1))
@@ -130,7 +141,7 @@ class RFDETRModel:
 
     def predict(
         self, 
-        image_path: str, 
+        image: np.ndarray, 
         confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD, 
         max_number_boxes: int = DEFAULT_MAX_NUMBER_BOXES
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], dict[str, float]]:
@@ -138,7 +149,7 @@ class RFDETRModel:
         Run the model inference and return the detections.
 
         Args:
-            image_path (str): Path or URL to the input image.
+            image (np.ndarray): Input image (H, W, C) in BGR format.
             confidence_threshold (float): Confidence threshold.
             max_number_boxes (int): Maximum boxes to return.
 
@@ -146,10 +157,7 @@ class RFDETRModel:
             tuple: (scores, labels, boxes, masks, timings)
         """
         timings = {}
-
-        # Load the image
-        image = open_image(image_path).convert('RGB')
-        origin_width, origin_height = image.size
+        origin_height, origin_width = image.shape[:2]
         
         # Preprocess the image
         start_pre = time.perf_counter()
@@ -176,7 +184,7 @@ class RFDETRModel:
 
     def save_detections(
         self, 
-        image_path: str, 
+        image: np.ndarray, 
         boxes: np.ndarray, 
         labels: np.ndarray, 
         masks: Optional[np.ndarray], 
@@ -186,14 +194,15 @@ class RFDETRModel:
         Draw bounding boxes, masks and class labels on the original image and save it.
 
         Args:
-            image_path (str): Path to original image.
+            image (np.ndarray): Original image (BGR).
             boxes (np.ndarray): Bounding boxes (xyxy).
             labels (np.ndarray): Class labels.
             masks (Optional[np.ndarray]): Segmentation masks.
             save_image_path (str): Path to save the result.
         """
-        # Load base image
-        base = open_image(image_path).convert("RGBA")
+        # Convert BGR to RGBA for PIL
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        base = Image.fromarray(image_rgb).convert("RGBA")
         result = base.copy()
 
         # Generate a color for each unique label (RGBA)

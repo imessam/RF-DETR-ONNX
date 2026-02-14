@@ -2,9 +2,16 @@
 # MIT License
 # Copyright (c) 2026 PierreMarieCurie
 # ------------------------------------------------------------------------
+import sys
+import os 
+
+base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
+if base_path not in sys.path:
+    sys.path.insert(0, base_path)
 
 import argparse
 import time
+import cv2
 from modules.model import RFDETRModel, DEFAULT_CONFIDENCE_THRESHOLD, DEFAULT_MAX_NUMBER_BOXES
 
 def parse_args() -> argparse.Namespace:
@@ -26,7 +33,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output",
-        default="output/output.jpg",
+        default=os.path.join(base_path, "output/output.jpg"),
         type=str,
         help="Path to save the output image with detections (default: output/output.jpg)"
     )
@@ -58,8 +65,13 @@ def main() -> None:
     # Initialize the model using the new RFDETRModel class
     model = RFDETRModel(args.model, device=args.device)
 
+    # Load image using OpenCV (BGR)
+    image = cv2.imread(args.image)
+    if image is None:
+        raise FileNotFoundError(f"Could not load image: {args.image}")
+
     # Run inference and get detections, measuring time
-    _, labels, boxes, masks, timings = model.predict(args.image, args.threshold, args.max_number_boxes)
+    _, labels, boxes, masks, timings = model.predict(image, args.threshold, args.max_number_boxes)
     
     # Calculate pure processing time (Pre + ORT + Post)
     processing_time = timings['preprocess'] + timings['ort_run'] + timings['postprocess']
@@ -77,7 +89,7 @@ def main() -> None:
     print(f"---------------------------------")
     
     # Draw and save detections
-    model.save_detections(args.image, boxes, labels, masks, args.output)
+    model.save_detections(image, boxes, labels, masks, args.output)
     print(f"Detections saved to: {args.output}")
 
 if __name__ == "__main__":

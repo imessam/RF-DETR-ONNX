@@ -9,30 +9,96 @@
     },
     "results": [
         {
-            "asset": "living_room.jpg",
-            "pt_time": 780.0239729995155,
-            "ox_time": 16.080424999927345,
-            "avg_iou": 0.985055148601532,
+            "asset": "drone.jpg",
+            "pt_time": 1175.000703020487,
+            "ox_time": 136.31778498529457,
+            "avg_iou": 0.9353623390197754,
             "label_acc": 100.0,
-            "status": "PASS"
-        },
-        {
-            "asset": "street.jpg",
-            "pt_time": 10.76683100018272,
-            "ox_time": 13.998655999785115,
-            "avg_iou": 0.994532585144043,
-            "label_acc": 100.0,
-            "status": "PASS"
-        },
-        {
-            "asset": "kitchen.jpg",
-            "pt_time": 10.930919000202266,
-            "ox_time": 13.991873000122723,
-            "avg_iou": 0.9928399920463562,
-            "label_acc": 100.0,
+            "box_matches": [
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.991123378276825
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9829108715057373
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9585301280021667
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9945921301841736
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9901179075241089
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9920538663864136
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9839568734169006
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9931751489639282
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9708702564239502
+                },
+                {
+                    "pt_label": "person",
+                    "ox_label": "person",
+                    "iou": 0.8608729243278503
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9932255744934082
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9891102313995361
+                },
+                {
+                    "pt_label": "truck",
+                    "ox_label": "truck",
+                    "iou": 0.44196537137031555
+                },
+                {
+                    "pt_label": "person",
+                    "ox_label": "person",
+                    "iou": 0.9175451993942261
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.952397346496582
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.953349769115448
+                }
+            ],
             "status": "PASS"
         }
     ],
-    "average_iou": 0.9908092419306437,
-    "average_speedup": 16.68601269961904
+    "average_iou": 0.9353623390197754,
+    "average_speedup": 8.619570096060771
 }

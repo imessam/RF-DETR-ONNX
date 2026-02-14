@@ -1,0 +1,38 @@
+{
+    "config": {
+        "arch": "nano",
+        "device": "gpu",
+        "model_path": "tests/test_models/inference_model.sim.onnx",
+        "threshold": 0.5,
+        "assets_dir": "tests/test_assets",
+        "results_dir": "tests/test_results"
+    },
+    "results": [
+        {
+            "asset": "living_room.jpg",
+            "pt_time": 780.0239729995155,
+            "ox_time": 16.080424999927345,
+            "avg_iou": 0.985055148601532,
+            "label_acc": 100.0,
+            "status": "PASS"
+        },
+        {
+            "asset": "street.jpg",
+            "pt_time": 10.76683100018272,
+            "ox_time": 13.998655999785115,
+            "avg_iou": 0.994532585144043,
+            "label_acc": 100.0,
+            "status": "PASS"
+        },
+        {
+            "asset": "kitchen.jpg",
+            "pt_time": 10.930919000202266,
+            "ox_time": 13.991873000122723,
+            "avg_iou": 0.9928399920463562,
+            "label_acc": 100.0,
+            "status": "PASS"
+        }
+    ],
+    "average_iou": 0.9908092419306437,
+    "average_speedup": 16.68601269961904
+}

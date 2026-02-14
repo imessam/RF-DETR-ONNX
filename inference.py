@@ -44,10 +44,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--device",
-        default="cpu",
+        default="gpu",
         choices=["gpu", "cpu"],
         type=str,
-        help="Device to use for inference (default: cpu)"
+        help="Device to use for inference (default: gpu)"
     )
     return parser.parse_args()
 
@@ -59,20 +59,25 @@ def main() -> None:
     model = RFDETRModel(args.model, device=args.device)
 
     # Run inference and get detections, measuring time
-    start_time = time.perf_counter()
-    _, labels, boxes, masks = model.predict(args.image, args.threshold, args.max_number_boxes)
-    end_time = time.perf_counter()
-
-    # Calculate metrics
-    latency_ms = (end_time - start_time) * 1000
-    fps = 1.0 / (end_time - start_time)
-
-    # Draw and save detections
-    model.save_detections(args.image, boxes, labels, masks, args.output)
+    _, labels, boxes, masks, timings = model.predict(args.image, args.threshold, args.max_number_boxes)
+    
+    # Calculate pure processing time (Pre + ORT + Post)
+    processing_time = timings['preprocess'] + timings['ort_run'] + timings['postprocess']
     
     print(f"--- Inference Results ---")
-    print(f"Latency: {latency_ms:.2f} ms")
-    print(f"FPS: {fps:.2f}")
+    print(f"Preprocessing:  {timings['preprocess']:.2f} ms")
+    print(f"ORT Run:        {timings['ort_run']:.2f} ms")
+    print(f"Postprocessing: {timings['postprocess']:.2f} ms")
+    print(f"---------------------------------")
+    print(f"Processing (Pre+ORT+Post): {processing_time:.2f} ms")
+    print(f"Processing FPS:           {1000.0 / processing_time:.2f}")
+    print(f"---------------------------------")
+    print(f"Total Latency (inc. I/O):  {timings['total']:.2f} ms")
+    print(f"Total FPS:                {1000.0 / timings['total']:.2f}")
+    print(f"---------------------------------")
+    
+    # Draw and save detections
+    model.save_detections(args.image, boxes, labels, masks, args.output)
     print(f"Detections saved to: {args.output}")
 
 if __name__ == "__main__":

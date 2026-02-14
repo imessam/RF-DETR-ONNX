@@ -26,6 +26,13 @@ class OnnxRuntimeSession:
             
             active_providers = self.session.get_providers()
             print(f"--- ONNX Runtime: Using {active_providers[0]} for inference ---")
+            
+            # Perform a warmup run to initialize CUDA/TensorRT
+            if device.lower() == "gpu":
+                print("--- ONNX Runtime: Warming up GPU... ---")
+                dummy_input = np.zeros(self.input_shape, dtype=np.float32)
+                self.session.run(None, {self.input_name: dummy_input})
+                print("--- ONNX Runtime: Warmup complete ---")
         except Exception as e:
             raise RuntimeError(
                 f"Failed to load ONNX model from '{model_path}'. "

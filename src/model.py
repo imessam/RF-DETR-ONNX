@@ -5,6 +5,7 @@
 
 import numpy as np
 import random
+import time
 from typing import Optional
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from .onnx_runtime import OnnxRuntimeSession
@@ -30,6 +31,10 @@ class RFDETRModel:
         self.ort_session = OnnxRuntimeSession(model_path, device=device)
         input_shape = self.ort_session.get_input_shape()
         self.input_height, self.input_width = input_shape[2:]
+        
+        # Pre-convert normalization constants for speed
+        self.means = np.array(self.MEANS, dtype=np.float32).reshape(3, 1, 1)
+        self.stds = np.array(self.STDS, dtype=np.float32).reshape(3, 1, 1)
 
     def _preprocess(self, image: Image.Image) -> np.ndarray:
         """
@@ -47,14 +52,14 @@ class RFDETRModel:
         # Convert image to numpy array and normalize pixel values
         image = np.array(image).astype(np.float32) / 255.0
 
-        # Normalize
-        image = ((image - self.MEANS) / self.STDS).astype(np.float32)
-
-        # Change dimensions from HWC to CHW
+        # Change dimensions from HWC to CHW before normalization
         image = np.transpose(image, (2, 0, 1))
 
+        # Normalize (vectorized)
+        image = (image - self.means) / self.stds
+
         # Add batch dimension
-        image = np.expand_dims(image, axis=0)
+        image = np.expand_dims(image.astype(np.float32), axis=0)
 
         return image
 
@@ -128,7 +133,7 @@ class RFDETRModel:
         image_path: str, 
         confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD, 
         max_number_boxes: int = DEFAULT_MAX_NUMBER_BOXES
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], dict[str, float]]:
         """
         Run the model inference and return the detections.
 
@@ -138,20 +143,36 @@ class RFDETRModel:
             max_number_boxes (int): Maximum boxes to return.
 
         Returns:
-            tuple: (scores, labels, boxes, masks)
+            tuple: (scores, labels, boxes, masks, timings)
         """
+        timings = {}
+
         # Load the image
         image = open_image(image_path).convert('RGB')
         origin_width, origin_height = image.size
         
         # Preprocess the image
+        start_pre = time.perf_counter()
         input_image = self._preprocess(image)
+        end_pre = time.perf_counter()
+        timings["preprocess"] = (end_pre - start_pre) * 1000
 
         # Run the model
+        start_run = time.perf_counter()
         outputs = self.ort_session.run(input_image)
+        end_run = time.perf_counter()
+        timings["ort_run"] = (end_run - start_run) * 1000
         
         # Post-process
-        return self._post_process(outputs, origin_height, origin_width, confidence_threshold, max_number_boxes)
+        start_post = time.perf_counter()
+        scores, labels, boxes, masks = self._post_process(outputs, origin_height, origin_width, confidence_threshold, max_number_boxes)
+        end_post = time.perf_counter()
+        timings["postprocess"] = (end_post - start_post) * 1000
+
+        total_latency = (end_post - start_pre) * 1000
+        timings["total"] = total_latency
+
+        return scores, labels, boxes, masks, timings
 
     def save_detections(
         self, 

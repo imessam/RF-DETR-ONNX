@@ -9,3 +9,5 @@
 *.ipynb
 *.sh
 *.jpg
+
+*.egg-info

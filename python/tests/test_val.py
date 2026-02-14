@@ -6,7 +6,7 @@ import torch
 import pytest
 from PIL import Image
 from rfdetr import RFDETRNano, RFDETRSmall, RFDETRBase, RFDETRMedium
-from src.model import RFDETRModel
+from modules.model import RFDETRModel
 
 # Architecture mapping
 MODELS = {

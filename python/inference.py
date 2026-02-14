@@ -5,7 +5,7 @@
 
 import argparse
 import time
-from src.model import RFDETRModel, DEFAULT_CONFIDENCE_THRESHOLD, DEFAULT_MAX_NUMBER_BOXES
+from modules.model import RFDETRModel, DEFAULT_CONFIDENCE_THRESHOLD, DEFAULT_MAX_NUMBER_BOXES
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""

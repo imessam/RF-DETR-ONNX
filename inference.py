@@ -4,9 +4,10 @@
 # ------------------------------------------------------------------------
 
 import argparse
-from rfdetr_onnx import RFDETR_ONNX, DEFAULT_CONFIDENCE_THRESHOLD, DEFAULT_MAX_NUMBER_BOXES
+import time
+from src.model import RFDETRModel, DEFAULT_CONFIDENCE_THRESHOLD, DEFAULT_MAX_NUMBER_BOXES
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         description="Run inference with a RF-DETR ONNX model."
@@ -25,9 +26,9 @@ def parse_args():
     )
     parser.add_argument(
         "--output",
-        default="output.jpg",
+        default="output/output.jpg",
         type=str,
-        help="Path to save the output image with detections (default: output.jpg)"
+        help="Path to save the output image with detections (default: output/output.jpg)"
     )
     parser.add_argument(
         "--threshold",
@@ -41,19 +42,37 @@ def parse_args():
         type=int,
         help=f"Maximum number of boxes to return (default: {DEFAULT_MAX_NUMBER_BOXES})"
     )
+    parser.add_argument(
+        "--device",
+        default="cpu",
+        choices=["gpu", "cpu"],
+        type=str,
+        help="Device to use for inference (default: cpu)"
+    )
     return parser.parse_args()
 
-def main():
+def main() -> None:
+    """Main inference demo function."""
     args = parse_args()
 
-    # Initialize the model
-    model = RFDETR_ONNX(args.model)
+    # Initialize the model using the new RFDETRModel class
+    model = RFDETRModel(args.model, device=args.device)
 
-    # Run inference and get detections
+    # Run inference and get detections, measuring time
+    start_time = time.perf_counter()
     _, labels, boxes, masks = model.predict(args.image, args.threshold, args.max_number_boxes)
+    end_time = time.perf_counter()
+
+    # Calculate metrics
+    latency_ms = (end_time - start_time) * 1000
+    fps = 1.0 / (end_time - start_time)
 
     # Draw and save detections
     model.save_detections(args.image, boxes, labels, masks, args.output)
+    
+    print(f"--- Inference Results ---")
+    print(f"Latency: {latency_ms:.2f} ms")
+    print(f"FPS: {fps:.2f}")
     print(f"Detections saved to: {args.output}")
 
 if __name__ == "__main__":

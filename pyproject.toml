@@ -6,8 +6,9 @@ readme = "README.MD"
 requires-python = ">=3.10"
 dependencies = [
     "numpy",
-    "onnxruntime>1.17",
-    "pillow"
+    "onnxruntime-gpu>1.17",
+    "pillow",
+    "requests"
 ]
 
 [project.optional-dependencies]

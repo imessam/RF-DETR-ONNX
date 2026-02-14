@@ -3,7 +3,7 @@
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Model-yellow)](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/tree/main)
 
 
-This repository contains code to load an ONNX version of RF-DETR and perform inference, including drawing the results on images. It demonstrates how to convert a PyTorch model to ONNX format and inference with minimal dependencies.
+This repository is a fork of the original work by [PierreMarieCurie](https://github.com/PierreMarieCurie/rf-detr-onnx), reworked and organized into a modular structure with additional features like manual device selection and performance metrics. Special thanks to [PierreMarieCurie](https://github.com/PierreMarieCurie) for the initial implementation and model conversions.
 
 RF-DETR is a transformer-based object detection and instance segmentation architecture developed by Roboflow. For more details on the model, please refer to the impressive work by the Roboflow team [here](https://github.com/roboflow/rf-detr/tree/main).
 
@@ -11,16 +11,28 @@ RF-DETR is a transformer-based object detection and instance segmentation archit
 |----------------------|-----------------------------|-----------------------------|
 | <p align="center"><img src="assets/official_repo.png" width="100%"></p> | <p align="center"><img src="assets/object_detection.jpg" width="74%"></p> | <p align="center"><img src="assets/instance_segmentation.jpg" width="74%"></p> |
 
+## Project Structure
+
+The project is organized as follows:
+
+- `inference.py`: High-level script for running inference on images.
+- `src/`: Core logic and modules.
+  - `model.py`: High-level detection model class (`RFDETRModel`).
+  - `onnx_runtime.py`: ONNX Runtime session management with automatic provider selection.
+  - `utils.py`: Common utility functions for image processing.
+  - `export.py`: Script to convert RF-DETR checkpoints to ONNX.
+- `output/`: Default directory for inference results.
+
 ## Installation
 
 First, clone the repository:
 
 ```bash
-git clone --depth 1 https://github.com/PierreMarieCurie/rf-detr-onnx.git
+git clone https://github.com/imessam/rf-detr-onnx.git
 ```
 Then, install the required dependencies.
 <details open>
-  <summary>Using uv (recommanded) </summary><br>
+  <summary>Using uv (recommended) </summary><br>
   
   If not installed, just run (on macOS and Linux):
 ```bash
@@ -73,57 +85,81 @@ Note that this corresponds to [rf-detr version 1.4.1](https://github.com/roboflo
     - [rf-detr-seg-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-large.onnx)
     - [rf-detr-seg-xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-xlarge.onnx)
     - [rf-detr-seg-2xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-xxlarge.onnx)
-    
 
 ### Converting 
 
-If you want to export your own fine-tuned RF-DETR model, we provide a script to help you do it:
-``` bash
-uv run export.py --checkpoint path/to/your/file.pth
-```
-You don’t need to specify the architecture (Nano, Small, Medium, Base, Large), it is detected automatically.
-<details>
-  <summary>Additionnal conversion parameters</summary><br>
+If you want to export your own fine-tuned RF-DETR model to ONNX format, we provide a dedicated script. Note that you need the `export-tools` dependencies for this:
 
 ```bash
-uv run export.py -h
+uv sync --extra export-tools
 ```
-Use the `--model-name` argument to specify the output ONNX file, and add the `--no-simplify` flag if you want to skip simplification.
+
+Then, run the export script:
+``` bash
+uv run python3 src/export.py --checkpoint path/to/your/file.pth
+```
+
+#### Detailed Export Parameters
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--checkpoint` | `str` | **Required** | Path to the `.pt` or `.pth` checkpoint file. |
+| `--model-name` | `str` | `None` | Name of the output ONNX file (defaults to checkpoint name). |
+| `--no-simplify`| `flag`| `False` | Disable ONNX model simplification (using `onnx-simplifier`). |
+
+You don’t need to specify the architecture (Nano, Small, Medium, etc.), it is detected automatically from the checkpoint.
+
+## Inference
+
+### Inference Script
+
+We provide a script to perform inference on a single image. By default, it runs on **CPU**, but you can enable **GPU** (CUDA/TensorRT) acceleration:
+
+``` bash
+# Run on CPU (default)
+uv run python3 inference.py --model path/to/model.onnx --image path/to/image.jpg
+
+# Run on GPU
+uv run python3 inference.py --model path/to/model.onnx --image path/to/image.jpg --device gpu
+```
+
+The script will output inference metrics:
+```text
+--- ONNX Runtime: Using CUDAExecutionProvider for inference ---
+--- Inference Results ---
+Latency: 45.20 ms
+FPS: 22.12
+Detections saved to: output/output.jpg
+```
+
+<details>
+  <summary>Additional inference parameters</summary><br>
+
+```bash
+uv run python3 inference.py -h
+```
+Use `--threshold` for confidence filtering, `--max_number_boxes` to limit results, and `--output` to change the save path.
 </details>
 
-## Inference Script Example
+### Programmatic Usage
 
-Below is an example showing how to perform inference on a single image:
+You can also use the `RFDETRModel` class in your own code:
 
 ``` python
-from rfdetr_onnx import RFDETR_ONNX
+from src.model import RFDETRModel
 
 # Get model and image
-image_path = "https://media.roboflow.com/notebooks/examples/dog-2.jpeg"
-model_path = "rf-detr-base.onnx"
+image_path = "assets/object_detection.jpg"
+model_path = "rf-detr-nano.onnx"
 
-# Initialize the model
-model = RFDETR_ONNX(model_path)
+# Initialize the model (picks best GPU provider if device="gpu" is passed)
+model = RFDETRModel(model_path, device="gpu")
 
 # Run inference and get detections
-_, labels, boxes, masks = model.predict(image_path)
+scores, labels, boxes, masks = model.predict(image_path)
 
 # Draw and display the detections
-model.save_detections(image_path, boxes, labels, masks, "output.jpg")
+model.save_detections(image_path, boxes, labels, masks, "output/result.jpg")
 ```
-
-Alternatively, we provide a script to help you do it:
-``` bash
-uv run inference.py --model path/to/your/model.onnx --image path/to/your/image
-```
-<details>
-  <summary>Additionnal inference parameters</summary><br>
-
-```bash
-uv run inference.py -h
-```
-Use the `--threshold` argument to specify the confidence threshold and the `--max_number_boxes` argument to limit the maximum number of bounding boxes. Also, add `--output` option to specify the output file name and extension if needed (default: output.jpg)
-</details>
 
 ## Version Compatibility
 
@@ -134,7 +170,7 @@ Use the `--threshold` argument to specify the confidence threshold and the `--ma
 
 ## License
 
-This repository is licensed under the MIT License. See [license file](LICENSE) for more details.
+This repository is licensed under the MIT License. See [LICENSE](LICENSE) for more details.
 
 However, some parts of the code are derived from Roboflow software. Below are the details:
 

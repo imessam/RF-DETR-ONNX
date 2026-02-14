@@ -37,31 +37,31 @@ from onnxsim import simplify
 
 # Backbone params to model class mapping
 BACKBONE_LEN_TO_CLASS = {
-    23_266_048: RFDETRNano,  # rf-detr-nano.pth
-    23_438_080: RFDETRSmall,  # rf-detr-small.pth
-    23_501_440: RFDETRBase,  # rf-detr-base.pth, rf-detr-base-o365.pth
-    23_542_528: RFDETRMedium,  # rf-detr-medium.pth
-    23_788_288: RFDETRLargeNew,  # rf-detr-large-2026.pth
-    92_713_216: RFDETRXLarge,  # rf-detr-xlarge.pth 
-    93_259_264: RFDETR2XLarge,  # rf-detr-xxlarge.pth
-    119_037_696: RFDETRLargeDeprecated,  # rf-detr-large.pth
-    23_175_424: RFDETRSegNano,  # rf-detr-seg-nano.pt
-    23_309_056: RFDETRSegSmall,  # rf-detr-seg-small.pt
-    23_593_216: RFDETRSegLarge,  # rf-detr-seg-large.pt
-    23_954_176: RFDETRSegXLarge,  # rf-detr-seg-xlarge.pt
-    24_488_704: RFDETRSeg2XLarge,  # rf-detr-seg-xxlarge.pt
+    23_266_048: RFDETRNano,
+    23_438_080: RFDETRSmall,
+    23_501_440: RFDETRBase,
+    23_542_528: RFDETRMedium,
+    23_788_288: RFDETRLargeNew,
+    92_713_216: RFDETRXLarge, 
+    93_259_264: RFDETR2XLarge,
+    119_037_696: RFDETRLargeDeprecated,
+    23_175_424: RFDETRSegNano,
+    23_309_056: RFDETRSegSmall,
+    23_593_216: RFDETRSegLarge,
+    23_954_176: RFDETRSegXLarge,
+    24_488_704: RFDETRSeg2XLarge,
 }
 
-def load_rfdetr_model(cpkt: str):
+def load_rfdetr_model(cpkt: str) -> torch.nn.Module:
+    """Load RF-DETR model from checkpoint."""
     try:
         # Load checkpoint
         print(f"Loading checkpoint: {cpkt}...")
         obj = torch.load(cpkt , weights_only=False)
-        args = obj.get("args", None)
         
         # Guess model class based on backbone size
         backbone_params = sum(p.numel() for k, p in obj["model"].items() if "backbone" in k and isinstance(p, torch.Tensor))
-        model_class = None
+        
         if backbone_params == 23_413_504:
             if 'transformer.decoder.layers.4.self_attn.in_proj_weight' in obj["model"].keys():
                 model_class = RFDETRSegMedium
@@ -73,6 +73,7 @@ def load_rfdetr_model(cpkt: str):
         # Return model instance
         if model_class is None:
             raise ValueError(f"Unknown model architecture")
+            
         print(f"Assuming the checkpoint corresponds to {model_class.__name__}")
         if issubclass(model_class, (RFDETRXLarge, RFDETR2XLarge)):
             warnings.warn(
@@ -97,9 +98,9 @@ def export_onnx(checkpoint: str, onnx_name: Optional[str] = None, no_simplify: b
     Args:
         checkpoint (str): Path to the model checkpoint file (e.g. "rf-detr-nano.pth").
         onnx_name (str): Name of the output ONNX file.
+        no_simplify (bool): Do not simplify the ONNX model (disabled by default).
     """
     try:
-        # Validate inputs
         if not isinstance(checkpoint, str):
             raise TypeError(f"Expected 'checkpoint' to be a str, got {type(checkpoint).__name__}")
         path = Path(checkpoint)
@@ -118,13 +119,15 @@ def export_onnx(checkpoint: str, onnx_name: Optional[str] = None, no_simplify: b
         device = config.device
         dummy_input = torch.randn(1, 3, resolution, resolution, device=device)
         model.eval()
+        
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             with torch.no_grad():
                 output = model(dummy_input)
-        if len(output) == 4: # Object detection
+                
+        if len(output) == 4:
             output_names = list(output.keys())[:2][::-1]
-        elif len(output) == 5: # Instance segmentation
+        elif len(output) == 5:
             output_names = list(output.keys())[:3][::-1]
         else:
             raise ValueError("Unexpected model output structure")
@@ -161,26 +164,10 @@ def export_onnx(checkpoint: str, onnx_name: Optional[str] = None, no_simplify: b
         raise RuntimeError(f"Failed to export model from checkpoint '{checkpoint}'") from e
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Export RF-DETR model to ONNX format"
-    )
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        required=True,
-        help="Path to a custom RF-DETR checkpoint (.pth for object detection, .pt for instance segmentation)",
-    )
-    parser.add_argument(
-        "--model-name",
-        type=str,
-        default=None,
-        help="Name of the output ONNX model file. If not provided, checkpoint name will be used with .onnx extension",
-    )
-    parser.add_argument(
-    "--no-simplify",
-    action="store_true",
-    help="Do not simplify the ONNX model (diseabled by default)",
-    )
+    parser = argparse.ArgumentParser(description="Export RF-DETR model to ONNX format")
+    parser.add_argument("--checkpoint", type=str, required=True, help="Path to checkpoint")
+    parser.add_argument("--model-name", type=str, default=None, help="Output ONNX filename")
+    parser.add_argument("--no-simplify", action="store_true", help="Do not simplify model")
     args = parser.parse_args()
 
     export_onnx(args.checkpoint, args.model_name, args.no_simplify)

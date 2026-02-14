@@ -3,61 +3,44 @@
 # Copyright (c) 2026 PierreMarieCurie
 # ------------------------------------------------------------------------
 
-import io
-import requests
-import onnxruntime as ort
 import numpy as np
-import os
-from PIL import Image, ImageDraw, ImageFont, ImageOps
 import random
+from typing import Optional
+from PIL import Image, ImageDraw, ImageFont, ImageOps
+from .onnx_runtime import OnnxRuntimeSession
+from .utils import open_image, sigmoid, box_cxcywh_to_xyxyn
 
 DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 DEFAULT_MAX_NUMBER_BOXES = 300
 
-def open_image(path):
-    # Check if the path is a URL (starts with 'http://' or 'https://')
-    if path.startswith('http://') or path.startswith('https://'):
-        img = Image.open(io.BytesIO(requests.get(path).content))
-    # If it's a local file path, open the image directly
-    else:
-        if os.path.exists(path):
-            img = Image.open(path)
-        else:
-            raise FileNotFoundError(f"The file {path} does not exist.")
-    return img
-
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-
-def box_cxcywh_to_xyxyn(x):
-    cx, cy, w, h = x[..., 0], x[..., 1], x[..., 2], x[..., 3]
-    xmin = cx - w / 2
-    ymin = cy - h / 2
-    xmax = cx + w / 2
-    ymax = cy + h / 2
-    return np.stack([xmin, ymin, xmax, ymax], axis=-1)
-
-class RFDETR_ONNX:
+class RFDETRModel:
+    """High-level class for RF-DETR model inference."""
+    
     MEANS = [0.485, 0.456, 0.406]
     STDS = [0.229, 0.224, 0.225]
 
-    def __init__(self, onnx_model_path):
-        try:
-            # Load the ONNX model and initialize the ONNX Runtime session
-            self.ort_session = ort.InferenceSession(onnx_model_path)
+    def __init__(self, model_path: str, device: str = "gpu"):
+        """
+        Initialize the RF-DETR model.
 
-            # Get input shape
-            input_info = self.ort_session.get_inputs()[0]
-            self.input_height, self.input_width = input_info.shape[2:]
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to load ONNX model from '{onnx_model_path}'. "
-                f"Ensure the path is correct and the model is a valid ONNX file."
-            ) from e
+        Args:
+            model_path (str): Path to the ONNX model file.
+            device (str): Device preference ("gpu" or "cpu").
+        """
+        self.ort_session = OnnxRuntimeSession(model_path, device=device)
+        input_shape = self.ort_session.get_input_shape()
+        self.input_height, self.input_width = input_shape[2:]
 
-    def _preprocess(self, image):
-        """Preprocess the input image for inference."""
-        
+    def _preprocess(self, image: Image.Image) -> np.ndarray:
+        """
+        Preprocess the input image for inference.
+
+        Args:
+            image (Image.Image): Input image.
+
+        Returns:
+            np.ndarray: Preprocessed image batch (1, C, H, W).
+        """
         # Resize the image to the model's input size
         image = image.resize((self.input_width, self.input_height))
 
@@ -75,10 +58,27 @@ class RFDETR_ONNX:
 
         return image
 
-    def _post_process(self, outputs, origin_height, origin_width, confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD, max_number_boxes=DEFAULT_MAX_NUMBER_BOXES):
+    def _post_process(
+        self, 
+        outputs: list[np.ndarray], 
+        origin_height: int, 
+        origin_width: int, 
+        confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD, 
+        max_number_boxes: int = DEFAULT_MAX_NUMBER_BOXES
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """
         Post-process the model's output to extract bounding boxes and class information.
         Inspired by the PostProcess class in rfdetr/lwdetr.py: https://github.com/roboflow/rf-detr/blob/1.3.0/rfdetr/models/lwdetr.py#L701
+
+        Args:
+            outputs (list[np.ndarray]): Raw model outputs.
+            origin_height (int): Original image height.
+            origin_width (int): Original image width.
+            confidence_threshold (float): Confidence threshold for filtering.
+            max_number_boxes (int): Maximum number of boxes to return.
+
+        Returns:
+            tuple: (scores, labels, boxes, masks)
         """
         # Get masks if instance segmentation
         if len(outputs) == 3:  
@@ -99,7 +99,7 @@ class RFDETR_ONNX:
         if masks is not None:
             masks = masks.squeeze()[sorted_idx][:max_number_boxes]
         
-        # Convert boxes from cxcywh to xyxyn format and scale to image size (i.e xyxyn -> xyxy)
+        # Convert boxes from cxcywh to xyxyn format and scale to image size
         boxes = box_cxcywh_to_xyxyn(boxes)
         boxes[..., [0, 2]] *= origin_width
         boxes[..., [1, 3]] *= origin_height
@@ -123,9 +123,23 @@ class RFDETR_ONNX:
         
         return scores, labels, boxes, masks
 
-    def predict(self, image_path, confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD, max_number_boxes=DEFAULT_MAX_NUMBER_BOXES):
-        """Run the model inference and return the raw outputs."""
-        
+    def predict(
+        self, 
+        image_path: str, 
+        confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD, 
+        max_number_boxes: int = DEFAULT_MAX_NUMBER_BOXES
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
+        """
+        Run the model inference and return the detections.
+
+        Args:
+            image_path (str): Path or URL to the input image.
+            confidence_threshold (float): Confidence threshold.
+            max_number_boxes (int): Maximum boxes to return.
+
+        Returns:
+            tuple: (scores, labels, boxes, masks)
+        """
         # Load the image
         image = open_image(image_path).convert('RGB')
         origin_width, origin_height = image.size
@@ -133,28 +147,40 @@ class RFDETR_ONNX:
         # Preprocess the image
         input_image = self._preprocess(image)
 
-        # Get input name from the model
-        input_name = self.ort_session.get_inputs()[0].name
-
         # Run the model
-        outputs = self.ort_session.run(None, {input_name: input_image})
+        outputs = self.ort_session.run(input_image)
         
         # Post-process
         return self._post_process(outputs, origin_height, origin_width, confidence_threshold, max_number_boxes)
 
-    def save_detections(self, image_path, boxes, labels, masks, save_image_path):
-        """Draw bounding boxes, masks and class labels on the original image."""
-        
+    def save_detections(
+        self, 
+        image_path: str, 
+        boxes: np.ndarray, 
+        labels: np.ndarray, 
+        masks: Optional[np.ndarray], 
+        save_image_path: str
+    ) -> None:
+        """
+        Draw bounding boxes, masks and class labels on the original image and save it.
+
+        Args:
+            image_path (str): Path to original image.
+            boxes (np.ndarray): Bounding boxes (xyxy).
+            labels (np.ndarray): Class labels.
+            masks (Optional[np.ndarray]): Segmentation masks.
+            save_image_path (str): Path to save the result.
+        """
         # Load base image
         base = open_image(image_path).convert("RGBA")
-        result = base.copy()  # start with the base image
+        result = base.copy()
 
         # Generate a color for each unique label (RGBA)
         label_colors = {
             label: (random.randint(0, 255),
                     random.randint(0, 255),
                     random.randint(0, 255),
-                    100)  # alpha for mask
+                    100)
             for label in np.unique(labels)
         }
 
@@ -181,7 +207,7 @@ class RFDETR_ONNX:
         for i, box in enumerate(boxes.astype(int)):
             label = labels[i]
             # Use same color as mask but fully opaque for the outline
-            box_color = tuple(label_colors[label][:3])  # ignore alpha
+            box_color = tuple(label_colors[label][:3])
             draw.rectangle(box.tolist(), outline=box_color, width=4)
 
             # Draw label text

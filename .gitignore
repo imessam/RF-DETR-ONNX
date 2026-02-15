@@ -2,6 +2,8 @@
 *.onnx
 *.pth
 *.pt
+*.json
+*.mp4
 
 # Others
 *.pyc
@@ -11,3 +13,4 @@
 *.egg-info
 .vscode/
 build/
+.cache/

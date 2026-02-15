@@ -10,11 +10,9 @@ include(${CMAKE_CURRENT_LIST_DIR}/../cmake/common.cmake)
 ## Libraries setup
 
 set(RFDETRLib_SOURCES
-
-  ${CMAKE_CURRENT_LIST_DIR}/class_abstract_base.cpp
-
-  ${CMAKE_CURRENT_LIST_DIR}/class_implemented_derived.cpp
-
+  ${CMAKE_CURRENT_LIST_DIR}/utils.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/onnx_runtime.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rfdetr_model.cpp
 )
 
 if (NOT TARGET rfdetr_onnx)
@@ -33,15 +31,20 @@ if (NOT TARGET rfdetr_onnx)
   endforeach()
 
   set(DEPS 
+    ${OpenCV_LIBS}
+  )
+  
+  # Add ONNX Runtime library
+  if(ONNXRUNTIME_LIBRARY)
+    list(APPEND DEPS ${ONNXRUNTIME_LIBRARY})
+  endif()
+  
+  # Add ONNX Runtime include directory to library (PUBLIC so it propagates to executables)
+  if(ONNXRUNTIME_INCLUDE_DIR)
+    target_include_directories(rfdetr_onnx PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
+  endif()
 
-  # yaml-cpp::yaml-cpp
-  # PkgConfig::gstreamer
-  # PkgConfig::gstreamer-sdp
-  # PkgConfig::gstreamer-app
-  # PkgConfig::gstreamer-video
-  # PkgConfig::gstreamer-pbutils
-  # ${OpenCV_LIBS}
+  target_link_libraries(rfdetr_onnx PUBLIC ${DEPS})
 
-)
 
 endif()

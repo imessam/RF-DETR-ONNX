@@ -15,10 +15,11 @@ RF-DETR is a transformer-based object detection and instance segmentation archit
 
 The project is organized within the `python/` directory:
 
-- `python/inference.py`: High-level- [x] Verify full workflow: download -> export -> generate -> compare
-- [x] Integrate full validation into CI/CD pipeline
-- [x] Fix CI/CD environment (Python 3.13, run_validation.sh tracking)
-- [x] Finalize test organization and automation [x]
+- `python/inference.py`: High-level inference demo script.
+- `benchmarks/`: Automated performance measurement suite.
+  - `run_benchmarks.sh`: Master script to run all tests and generate a report.
+  - `python/`: Python-side benchmarking tools.
+  - `cpp/`: C++-side benchmarking tools.
 - `python/modules/`: Core logic and modules.
   - `model.py`: High-level detection model class (`RFDETRModel`).
   - `onnx_runtime.py`: ONNX Runtime session management.
@@ -30,6 +31,10 @@ The project is organized within the `python/` directory:
   - `generate_onnx_results.py`: Target result generator (ONNX).
   - `test_val.py`: Accuracy comparison test suite.
 - `output/`: Default directory for inference results.
+- `cpp/`: Modular C++ implementation of RF-DETR.
+  - `include/`: Header files for model, session, and utils.
+  - `src/`: Source code implementation.
+  - `CMakeLists.txt`: Build configuration.
 
 ## Installation
 
@@ -114,6 +119,48 @@ scores, labels, boxes, masks = model.predict("path/to/image.jpg")
 # Visualize results
 model.save_detections("path/to/image.jpg", boxes, labels, masks, "output/result.jpg")
 ```
+
+## C++ Implementation
+
+The C++ implementation provides a high-performance, modular library for RF-DETR inference.
+
+### Build Instructions
+
+Requires: OpenCV 4.x and ONNX Runtime C++ API.
+
+```bash
+cd cpp
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+```
+
+### Usage
+
+```bash
+./rfdetr_onnx_demo \
+    --model ../models/rf-detr-nano/rf-detr-nano.sim.onnx \
+    --image ../assets/drone.jpg \
+    --device gpu
+```
+
+## Performance Comparison
+
+Inference performance measured on **RF-DETR Nano** (384x384) using a laptop with **CUDA Acceleration** (RTX 40-series) and a modern multi-core CPU.
+
+## Benchmarking
+
+Performance results and automated benchmarking tools are available in the [benchmarks/](benchmarks/) directory. The suite tests multiple scenarios:
+- **Multi-Images**: Processes a set of COCO sample images.
+- **Video**: Measures real-time processing speed on a standard test video.
+
+To run the full suite:
+```bash
+./benchmarks/run_benchmarks.sh [iterations]
+```
+
+This will build the C++ components, run both Python and C++ benchmarks across CPU/GPU, and generate a detailed report in `benchmarks/results.md`.
+
 
 ## License
 

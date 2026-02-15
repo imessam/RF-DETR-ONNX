@@ -7,5 +7,7 @@
 *.pyc
 *.lock
 *.ipynb
-*.sh
-*.jpg
+
+*.egg-info
+.vscode/
+build/

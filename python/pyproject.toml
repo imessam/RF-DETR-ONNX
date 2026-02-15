@@ -1,0 +1,21 @@
+[project]
+name = "rf-detr-onnx"
+version = "0.1.0"
+description = "Scripts to use ONNX version of RF-DETR"
+readme = "README.MD"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "opencv-python",
+    "onnxruntime>1.17",
+    "pillow",
+    "requests",
+]
+
+[project.optional-dependencies]
+gpu = ["onnxruntime-gpu>1.17"]
+export = ["rfdetr", "rfdetr[onnxexport]", "onnx==1.19.0", "onnxsim==0.4.36", "onnxscript", "torch==2.8.0"]
+test = ["pytest>=9.0.2", "rfdetr"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

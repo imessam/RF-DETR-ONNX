@@ -1,0 +1,104 @@
+{
+    "config": {
+        "arch": "nano",
+        "device": "gpu",
+        "model_path": "tests/test_models/inference_model.sim.onnx",
+        "threshold": 0.5,
+        "assets_dir": "tests/test_assets",
+        "results_dir": "tests/test_results"
+    },
+    "results": [
+        {
+            "asset": "drone.jpg",
+            "pt_time": 1149.0840279730037,
+            "ox_time": 175.3089749836363,
+            "avg_iou": 0.9353623347449562,
+            "label_acc": 100.0,
+            "box_matches": [
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9911233209971888
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.98291080212817
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9585302406526093
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9945922768714072
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9901178711370194
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.992053959599338
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9839569120766591
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9931751460338496
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9708703414174932
+                },
+                {
+                    "pt_label": "person",
+                    "ox_label": "person",
+                    "iou": 0.8608730013995994
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9932257018859826
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9891102033870952
+                },
+                {
+                    "pt_label": "truck",
+                    "ox_label": "truck",
+                    "iou": 0.4419653304263473
+                },
+                {
+                    "pt_label": "person",
+                    "ox_label": "person",
+                    "iou": 0.9175452624377958
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9523973222141926
+                },
+                {
+                    "pt_label": "car",
+                    "ox_label": "car",
+                    "iou": 0.9533496632545535
+                }
+            ],
+            "status": "PASS"
+        }
+    ],
+    "average_iou": 0.9353623347449562,
+    "average_speedup": 6.554621793209741
+}

@@ -167,6 +167,7 @@ class TestValidation:
         if f.lower().endswith(('.jpg', '.jpeg', '.png'))
     ])
     def test_detection_accuracy(self, setup_class, asset_name):
+
         """Standardized Pytest for accuracy validation."""
         torch_model, onnx_model = setup_class
         config = TestValidation._config

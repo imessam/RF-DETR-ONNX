@@ -17,3 +17,4 @@ dependencies = [
 gpu = ["onnxruntime-gpu>1.17"]
 cpu = ["onnxruntime>1.17"]
 export-tools = ["rfdetr", "rfdetr[onnxexport]", "onnx==1.19.0", "onnxsim==0.4.36", "onnxscript", "torch==2.8.0"]
+test = ["pytest>=9.0.2", "rfdetr"]

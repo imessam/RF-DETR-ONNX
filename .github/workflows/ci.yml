@@ -24,5 +24,4 @@ jobs:
     - name: Run full validation pipeline
       run: |
         cd python
-        ls -l run_validation.sh
         bash run_validation.sh nano

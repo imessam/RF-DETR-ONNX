@@ -7,7 +7,6 @@
 *.pyc
 *.lock
 *.ipynb
-*.sh
 
 *.egg-info
 .vscode/

@@ -4,6 +4,15 @@ import shutil
 from rfdetr import RFDETRNano
 
 def main():
+
+     # Configuration
+    output_base_dir = "tests/test_models"
+    final_onnx_name = "inference_model.sim.onnx"
+    
+    # Ensuring the output directory exists
+    os.makedirs(output_base_dir, exist_ok=True)
+
+
     # 1. Initialize and download model if needed
     print("Initializing RFDETRNano (automatic weight download if needed)...")
     model = RFDETRNano()

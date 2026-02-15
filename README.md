@@ -7,9 +7,9 @@ This repository is a fork of the original work by [PierreMarieCurie](https://git
 
 RF-DETR is a transformer-based object detection and instance segmentation architecture developed by Roboflow. For more details on the model, please refer to the impressive work by the Roboflow team [here](https://github.com/roboflow/rf-detr/tree/main).
 
-| Roboflow | ONNX Runtime Inference<p> (Object detection) | ONNX Runtime Inference <p> (Instance segmentation) |
-|----------------------|-----------------------------|-----------------------------|
-| <p align="center"><img src="assets/official_repo.png" width="100%"></p> | <p align="center"><img src="assets/object_detection.jpg" width="74%"></p> | <p align="center"><img src="assets/instance_segmentation.jpg" width="74%"></p> |
+| Original Image | Torch Reference | ONNX Inference Result |
+|----------------|-----------------|-----------------------|
+| <p align="center"><img src="assets/drone.jpg" width="100%"></p> | <p align="center"><img src="assets/reference_demo.jpg" width="100%"></p> | <p align="center"><img src="assets/detection_demo.jpg" width="100%"></p> |
 
 ## Project Structure
 
@@ -21,7 +21,7 @@ The project is organized within the `python/` directory:
   - `model.py`: High-level detection model class (`RFDETRModel`).
   - `onnx_runtime.py`: ONNX Runtime session management.
   - `utils.py`: Common utility functions.
-  - `export.py`: Core export logic.
+  - `export_roboflow.py`: Script to convert RF-DETR checkpoints to ONNX via Roboflow API.
 - `python/tests/`: Quality assurance and validation tools.
   - `prepare_models.py`: Handles weight download and ONNX export.
   - `generate_torch_results.py`: Reference result generator (PyTorch).
@@ -38,22 +38,22 @@ git clone https://github.com/imessam/rf-detr-onnx.git
 cd rf-detr-onnx/python
 ```
 
-### Using uv (recommended)
+### Using uv
 
-If not installed, run:
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+First, install [uv](https://docs.astral.sh/uv/) if you haven't already:
 
-For a full development and testing setup (including export and validation tools):
-```bash
-uv sync --extra export --extra test
-```
-
-For lightweight inference only:
-```bash
-uv sync
-```
+- **Lightweight Inference (CPU)**:
+  ```bash
+  uv sync
+  ```
+- **GPU Acceleration**:
+  ```bash
+  uv sync --extra gpu
+  ```
+- **Full Development (Export & Testing)**:
+  ```bash
+  uv sync --extra export --extra test
+  ```
 
 ## Validation & Testing
 
@@ -63,47 +63,26 @@ We provide a fully automated validation pipeline that ensures the exported ONNX 
 The master script handles dependency syncing, model preparation, result generation, and accuracy comparison:
 
 ```bash
-pip install --upgrade .
+./run_validation.sh nano
 ```
-Make sure to install Python 3.10+ on your local or virtual environment.
-</details>
 
-## Model to ONNX format
+## Converting 
 
-### Downloading from Hugging-face
-
-Roboflow provides pre-trained RF-DETR models on the [COCO](https://cocodataset.org/#home) and [Objects365](https://www.objects365.org/overview.html) datasets. We have already converted some of these models to the ONNX format for you, which you can directly download from [Hugging Face](https://huggingface.co/PierreMarieCurie/rf-detr-onnx).
-
-Note that this corresponds to [rf-detr version 1.4.1](https://github.com/roboflow/rf-detr/tree/1.4.1):
-- **Object detection**:
-  - Trained on COCO dataset:
-    - [rf-detr-nano](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.onnx)
-    - [rf-detr-base](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-coco.onnx)
-    - [rf-detr-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-small.onnx)
-    - [rf-detr-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-medium.onnx)
-    - [rf-detr-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large.onnx) (**DEPRECATED**)
-    - [rf-detr-large-2026](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-large-2026.onnx)
-    - [rf-detr-xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-xlarge.onnx)
-    - [rf-detr-2xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-xxlarge.onnx)
-  - Trained on Objects365 dataset:
-    - [rf-detr-base-o365](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-base-o365.onnx)
-- **Instance segmentation** (train on COCO dataset)
-    - [rf-detr-seg-preview](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-preview.onnx)
-    - [rf-detr-seg-nano](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-nano.onnx)
-    - [rf-detr-seg-small](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-small.onnx)
-    - [rf-detr-seg-medium](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-medium.onnx)
-    - [rf-detr-seg-large](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-large.onnx)
-    - [rf-detr-seg-xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-xlarge.onnx)
-    - [rf-detr-seg-2xlarge](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-seg-xxlarge.onnx)
-
-### Converting 
-
-If you want to export your own fine-tuned RF-DETR model to ONNX, you can use the preparation script directly:
+To export your own fine-tuned RF-DETR model to ONNX, use the `export_roboflow.py` script. You'll need the `[export]` extra:
 
 ```bash
 uv sync --extra export
-uv run python tests/prepare_models.py
+uv run python modules/export_roboflow.py --weights path/to/your_model.pth --model-type nano
 ```
+
+#### Export Parameters
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--weights` | `str` | **Required** | Path to the `.pth` checkpoint file. |
+| `--model-type` | `str` | `nano` | Architecture type (`nano`, `small`, `base`, `medium`, `large`). |
+| `--output-dir` | `str` | `models/` | Directory for the exported model. |
+| `--opset` | `int` | `17` | ONNX opset version. |
+| `--no-simplify`| `flag`| `False` | Disable model simplification. |
 
 ## Inference
 
@@ -131,13 +110,6 @@ scores, labels, boxes, masks = model.predict("path/to/image.jpg")
 # Visualize results
 model.save_detections("path/to/image.jpg", boxes, labels, masks, "output/result.jpg")
 ```
-
-## Version Compatibility
-
-| Repo Tag | rfdetr Version | Status |
-|--------|----------------|--------|
-| v1.0-rfdetr1.3.0 | [1.3.0](https://github.com/roboflow/rf-detr/tree/1.3.0) | Stable |
-| main | [1.4.1](https://github.com/roboflow/rf-detr/tree/1.4.1) | In progress |
 
 ## License
 

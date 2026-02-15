@@ -4,17 +4,9 @@ import shutil
 from rfdetr import RFDETRNano
 
 def main():
-    # Configuration
-    checkpoint_path = "rf-detr-nano.pth"
-    output_base_dir = "tests/test_models"
-    final_onnx_name = "inference_model.sim.onnx"
-    
-    # Ensuring the output directory exists
-    os.makedirs(output_base_dir, exist_ok=True)
-
     # 1. Initialize and download model if needed
-    print(f"Initializing RFDETRNano with weights: {checkpoint_path}")
-    model = RFDETRNano(pretrain_weights=checkpoint_path)
+    print("Initializing RFDETRNano (automatic weight download if needed)...")
+    model = RFDETRNano()
     
     # 2. Export using Roboflow native API
     # The native export creates files directly in output_dir:

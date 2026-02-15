@@ -15,8 +15,10 @@ RF-DETR is a transformer-based object detection and instance segmentation archit
 
 The project is organized within the `python/` directory:
 
-- `python/inference.py`: High-level script for running inference on images.
-- `python/run_validation.sh`: Master script for end-to-end model preparation and validation.
+- `python/inference.py`: High-level- [x] Verify full workflow: download -> export -> generate -> compare
+- [x] Integrate full validation into CI/CD pipeline
+- [x] Fix CI/CD environment (Python 3.13, run_validation.sh tracking)
+- [x] Finalize test organization and automation [x]
 - `python/modules/`: Core logic and modules.
   - `model.py`: High-level detection model class (`RFDETRModel`).
   - `onnx_runtime.py`: ONNX Runtime session management.
@@ -72,7 +74,9 @@ To export your own fine-tuned RF-DETR model to ONNX, use the `export_roboflow.py
 
 ```bash
 uv sync --extra export
-uv run python modules/export_roboflow.py --weights path/to/your_model.pth --model-type nano
+```bash
+uv sync --extra export
+uv run python modules/export_roboflow.py --model-type nano
 ```
 
 #### Export Parameters

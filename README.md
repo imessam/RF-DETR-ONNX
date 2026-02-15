@@ -13,14 +13,20 @@ RF-DETR is a transformer-based object detection and instance segmentation archit
 
 ## Project Structure
 
-The project is organized as follows:
+The project is organized within the `python/` directory:
 
-- `inference.py`: High-level script for running inference on images.
-- `src/`: Core logic and modules.
+- `python/inference.py`: High-level script for running inference on images.
+- `python/run_validation.sh`: Master script for end-to-end model preparation and validation.
+- `python/modules/`: Core logic and modules.
   - `model.py`: High-level detection model class (`RFDETRModel`).
-  - `onnx_runtime.py`: ONNX Runtime session management with automatic provider selection.
-  - `utils.py`: Common utility functions for image processing.
-  - `export.py`: Script to convert RF-DETR checkpoints to ONNX.
+  - `onnx_runtime.py`: ONNX Runtime session management.
+  - `utils.py`: Common utility functions.
+  - `export.py`: Core export logic.
+- `python/tests/`: Quality assurance and validation tools.
+  - `prepare_models.py`: Handles weight download and ONNX export.
+  - `generate_torch_results.py`: Reference result generator (PyTorch).
+  - `generate_onnx_results.py`: Target result generator (ONNX).
+  - `test_val.py`: Accuracy comparison test suite.
 - `output/`: Default directory for inference results.
 
 ## Installation
@@ -29,28 +35,32 @@ First, clone the repository:
 
 ```bash
 git clone https://github.com/imessam/rf-detr-onnx.git
+cd rf-detr-onnx/python
 ```
-Then, install the required dependencies.
-<details open>
-  <summary>Using uv (recommended) </summary><br>
-  
-  If not installed, just run (on macOS and Linux):
+
+### Using uv (recommended)
+
+If not installed, run:
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
-> Check [Astral documentation](https://docs.astral.sh/uv/getting-started/installation) if you need alternative installation methods.
 
-Then:
+For a full development and testing setup (including export and validation tools):
 ```bash
-uv sync --extra export-tools
+uv sync --extra export --extra test
 ```
-If you only want to use the inference scripts without converting your own model, you don’t need the `rfdetr` dependencies, so just run:
+
+For lightweight inference only:
 ```bash
 uv sync
 ```
-</details>
-<details>
-  <summary>Not using uv (not recommanded)</summary><br>
+
+## Validation & Testing
+
+We provide a fully automated validation pipeline that ensures the exported ONNX model matches the original PyTorch model's accuracy.
+
+### Run Full Pipeline
+The master script handles dependency syncing, model preparation, result generation, and accuracy comparison:
 
 ```bash
 pip install --upgrade .
@@ -88,77 +98,38 @@ Note that this corresponds to [rf-detr version 1.4.1](https://github.com/roboflo
 
 ### Converting 
 
-If you want to export your own fine-tuned RF-DETR model to ONNX format, we provide a dedicated script. Note that you need the `export-tools` dependencies for this:
+If you want to export your own fine-tuned RF-DETR model to ONNX, you can use the preparation script directly:
 
 ```bash
-uv sync --extra export-tools
+uv sync --extra export
+uv run python tests/prepare_models.py
 ```
-
-Then, run the export script:
-``` bash
-uv run python3 src/export.py --checkpoint path/to/your/file.pth
-```
-
-#### Detailed Export Parameters
-| Argument | Type | Default | Description |
-|----------|------|---------|-------------|
-| `--checkpoint` | `str` | **Required** | Path to the `.pt` or `.pth` checkpoint file. |
-| `--model-name` | `str` | `None` | Name of the output ONNX file (defaults to checkpoint name). |
-| `--no-simplify`| `flag`| `False` | Disable ONNX model simplification (using `onnx-simplifier`). |
-
-You don’t need to specify the architecture (Nano, Small, Medium, etc.), it is detected automatically from the checkpoint.
 
 ## Inference
 
 ### Inference Script
 
-We provide a script to perform inference on a single image. By default, it runs on **CPU**, but you can enable **GPU** (CUDA/TensorRT) acceleration:
-
-``` bash
+```bash
 # Run on CPU (default)
-uv run python3 inference.py --model path/to/model.onnx --image path/to/image.jpg
+uv run python inference.py --model tests/test_models/inference_model.sim.onnx --image ../assets/drone.jpg
 
 # Run on GPU
-uv run python3 inference.py --model path/to/model.onnx --image path/to/image.jpg --device gpu
+uv run python inference.py --model tests/test_models/inference_model.sim.onnx --image ../assets/drone.jpg --device gpu
 ```
-
-The script will output inference metrics:
-```text
---- ONNX Runtime: Using CUDAExecutionProvider for inference ---
---- Inference Results ---
-Latency: 45.20 ms
-FPS: 22.12
-Detections saved to: output/output.jpg
-```
-
-<details>
-  <summary>Additional inference parameters</summary><br>
-
-```bash
-uv run python3 inference.py -h
-```
-Use `--threshold` for confidence filtering, `--max_number_boxes` to limit results, and `--output` to change the save path.
-</details>
 
 ### Programmatic Usage
 
-You can also use the `RFDETRModel` class in your own code:
+```python
+from modules.model import RFDETRModel
 
-``` python
-from src.model import RFDETRModel
+# Initialize the model
+model = RFDETRModel("path/to/model.onnx", device="cpu")
 
-# Get model and image
-image_path = "assets/object_detection.jpg"
-model_path = "rf-detr-nano.onnx"
+# Run inference
+scores, labels, boxes, masks = model.predict("path/to/image.jpg")
 
-# Initialize the model (picks best GPU provider if device="gpu" is passed)
-model = RFDETRModel(model_path, device="gpu")
-
-# Run inference and get detections
-scores, labels, boxes, masks = model.predict(image_path)
-
-# Draw and display the detections
-model.save_detections(image_path, boxes, labels, masks, "output/result.jpg")
+# Visualize results
+model.save_detections("path/to/image.jpg", boxes, labels, masks, "output/result.jpg")
 ```
 
 ## Version Compatibility

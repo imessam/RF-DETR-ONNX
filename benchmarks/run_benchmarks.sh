@@ -2,7 +2,7 @@
 set -e
 
 # Configuration
-ITERATIONS=${1:-100}
+ITERATIONS=${1:-10}
 MODEL_PATH="models/rf-detr-nano/rf-detr-nano.sim.onnx"
 IMAGES_DIR="benchmarks/assets/images"
 VIDEO_PATH="benchmarks/assets/video/sample.mp4"
@@ -33,7 +33,14 @@ if [ ! -d "$BENCH_DIR/assets" ]; then
     curl -o "$BENCH_DIR/assets/video/sample.mp4" https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4
 fi
 
-# 1. Build C++ Benchmark
+# 1. Build C++ Library & Benchmark
+echo ">>> Building C++ Library..."
+cd "$REPO_ROOT/cpp"
+mkdir -p build
+cd build
+cmake ..
+make -j$(nproc)
+
 echo ">>> Building C++ Benchmark..."
 cd "$BENCH_DIR/cpp"
 mkdir -p build

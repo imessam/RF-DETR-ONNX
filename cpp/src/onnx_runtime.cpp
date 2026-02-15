@@ -65,11 +65,16 @@ OnnxRuntimeSession::OnnxRuntimeSession(const std::string &modelPath,
     auto tensorInfo = inputTypeInfo.GetTensorTypeAndShapeInfo();
     inputShape_ = tensorInfo.GetShape();
 
-    // Get output information
+    // Get output information and cache output names
     numOutputs_ = session_->GetOutputCount();
+    cachedOutputNamesPtr_.clear();
     for (size_t i = 0; i < numOutputs_ && i < 3; ++i) {
       auto outputNameAllocated = session_->GetOutputNameAllocated(i, allocator);
       outputNames_[i] = outputNameAllocated.get();
+    }
+    // Build the cached pointer vector once
+    for (size_t i = 0; i < numOutputs_; ++i) {
+      cachedOutputNamesPtr_.push_back(outputNames_[i].c_str());
     }
 
     std::cout << "Input shape: [";
@@ -109,13 +114,9 @@ void OnnxRuntimeSession::warmup() {
         inputShape_.size());
 
     const char *inputNames[] = {inputName_.c_str()};
-    std::vector<const char *> outputNamesPtr;
-    for (size_t i = 0; i < numOutputs_; ++i) {
-      outputNamesPtr.push_back(outputNames_[i].c_str());
-    }
 
     session_->Run(Ort::RunOptions{nullptr}, inputNames, &dummyTensor, 1,
-                  outputNamesPtr.data(), numOutputs_);
+                  cachedOutputNamesPtr_.data(), numOutputs_);
 
     std::cout << "--- ONNX Runtime: Warmup complete ---" << std::endl;
   }
@@ -123,11 +124,9 @@ void OnnxRuntimeSession::warmup() {
 
 void OnnxRuntimeSession::run(const cv::Mat &inputData,
                              std::vector<cv::Mat> &outputs) {
-  // Ensure input is continuous in memory
-  cv::Mat input = inputData.clone();
-  if (!input.isContinuous()) {
-    input = input.clone();
-  }
+  // Only clone if not continuous (avoid redundant copy)
+  const cv::Mat &input =
+      inputData.isContinuous() ? inputData : inputData.clone();
 
   // Create ONNX tensor from OpenCV Mat
   std::vector<int64_t> inputTensorShape = {
@@ -138,20 +137,16 @@ void OnnxRuntimeSession::run(const cv::Mat &inputData,
   };
 
   Ort::Value inputTensor = Ort::Value::CreateTensor<float>(
-      memoryInfo_, input.ptr<float>(), input.total(), inputTensorShape.data(),
-      inputTensorShape.size());
+      memoryInfo_, const_cast<float *>(input.ptr<float>()), input.total(),
+      inputTensorShape.data(), inputTensorShape.size());
 
-  // Prepare input/output names
+  // Prepare input names
   const char *inputNames[] = {inputName_.c_str()};
-  std::vector<const char *> outputNamesPtr;
-  for (size_t i = 0; i < numOutputs_; ++i) {
-    outputNamesPtr.push_back(outputNames_[i].c_str());
-  }
 
   // Run inference
   auto outputTensors =
       session_->Run(Ort::RunOptions{nullptr}, inputNames, &inputTensor, 1,
-                    outputNamesPtr.data(), numOutputs_);
+                    cachedOutputNamesPtr_.data(), numOutputs_);
 
   // Convert output tensors to OpenCV Mats
   outputs.clear();
@@ -170,7 +165,7 @@ void OnnxRuntimeSession::run(const cv::Mat &inputData,
       cvShape.push_back(static_cast<int>(dim));
     }
 
-    // Create Mat (makes a copy of the data)
+    // Create Mat (copy data so ORT can reuse arena buffers)
     cv::Mat output(cvShape, CV_32F);
     std::memcpy(output.data, tensorData,
                 tensorInfo.GetElementCount() * sizeof(float));

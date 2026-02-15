@@ -68,6 +68,9 @@ private:
   std::string activeProvider_;
   std::string outputNames_[3]; // Support up to 3 outputs (boxes, scores, masks)
   size_t numOutputs_;
+
+  // Cached for performance: avoid rebuilding on every run() call
+  std::vector<const char *> cachedOutputNamesPtr_;
 };
 
 } // namespace rfdetr

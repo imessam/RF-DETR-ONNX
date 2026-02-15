@@ -1,8 +1,8 @@
 #include "rfdetr_model.hpp"
-#include "utils.hpp"
 #include <algorithm>
 #include <chrono>
-#include <iostream>
+#include <cmath>
+#include <cstring>
 #include <random>
 
 namespace rfdetr {
@@ -17,18 +17,16 @@ RFDETRModel::RFDETRModel(const std::string &modelPath,
   inputHeight_ = static_cast<int>(inputShape[2]);
   inputWidth_ = static_cast<int>(inputShape[3]);
 
-  // Pre-convert normalization constants (C, 1, 1)
-  means_ = cv::Mat(3, 1, CV_32F);
-  stds_ = cv::Mat(3, 1, CV_32F);
+  // Pre-allocate preprocessing buffer (1 * 3 * H * W)
+  preprocessBuffer_.resize(3 * inputHeight_ * inputWidth_);
 
+  // Pre-compute fused normalization constants:
+  //   normalized = (pixel/255.0 - mean) / std
+  //             = pixel * (1.0 / (255.0 * std)) + (-mean / std)
   for (int i = 0; i < 3; ++i) {
-    means_.at<float>(i, 0) = MEANS[i];
-    stds_.at<float>(i, 0) = STDS[i];
+    normScale_[i] = 1.0f / (255.0f * STDS[i]);
+    normOffset_[i] = -MEANS[i] / STDS[i];
   }
-
-  // Reshape for broadcasting (1, 3, 1, 1)
-  means_ = means_.reshape(1, {1, 3, 1, 1});
-  stds_ = stds_.reshape(1, {1, 3, 1, 1});
 
   // Perform warmup
   warmup();
@@ -37,7 +35,7 @@ RFDETRModel::RFDETRModel(const std::string &modelPath,
 void RFDETRModel::warmup() { ortSession_->warmup(); }
 
 void RFDETRModel::preprocess(const cv::Mat &image, cv::Mat &output) {
-  // Convert BGR to RGB
+  // Convert BGR to RGB first (on original image)
   cv::Mat rgb;
   cv::cvtColor(image, rgb, cv::COLOR_BGR2RGB);
 
@@ -45,29 +43,28 @@ void RFDETRModel::preprocess(const cv::Mat &image, cv::Mat &output) {
   cv::Mat resized;
   cv::resize(rgb, resized, cv::Size(inputWidth_, inputHeight_));
 
-  // Convert to float32 and normalize to [0, 1]
-  cv::Mat float_img;
-  resized.convertTo(float_img, CV_32F, 1.0 / 255.0);
+  // Use OpenCV's SIMD-optimized convertTo + split, then normalize per-channel
+  const int planeSize = inputHeight_ * inputWidth_;
 
-  // Convert from HWC to CHW
-  std::vector<cv::Mat> channels(3);
-  cv::split(float_img, channels);
+  // Convert uint8 to float32 normalized to [0,1] (SIMD-optimized)
+  cv::Mat floatRgb;
+  resized.convertTo(floatRgb, CV_32FC3, 1.0 / 255.0);
 
-  // Stack channels and add batch dimension: (1, 3, H, W)
-  output = cv::Mat(1, 3 * inputHeight_ * inputWidth_, CV_32F);
+  // Split into separate channels
+  cv::Mat channels[3];
+  cv::split(floatRgb, channels);
 
+  // Normalize each channel and copy into pre-allocated CHW buffer
+  float *bufPtr = preprocessBuffer_.data();
   for (int c = 0; c < 3; ++c) {
-    // Normalize each channel: (img - mean) / std
-    cv::Mat normalized = (channels[c] - MEANS[c]) / STDS[c];
-
-    // Copy to output tensor
-    std::memcpy(output.ptr<float>() + c * inputHeight_ * inputWidth_,
-                normalized.data, inputHeight_ * inputWidth_ * sizeof(float));
+    channels[c] = (channels[c] - MEANS[c]) / STDS[c];
+    std::memcpy(bufPtr + c * planeSize, channels[c].data,
+                planeSize * sizeof(float));
   }
 
-  // Reshape to (1, 3, H, W)
+  // Wrap buffer as cv::Mat (no copy, shares data with preprocessBuffer_)
   int dims[] = {1, 3, inputHeight_, inputWidth_};
-  output = output.reshape(1, 4, dims);
+  output = cv::Mat(4, dims, CV_32F, preprocessBuffer_.data());
 }
 
 void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
@@ -78,8 +75,6 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
 
   // outputs[0]: boxes (1, N, 4)
   // outputs[1]: scores/logits (1, N, num_classes)
-  // outputs[2]: masks (optional) (1, N, mask_h, mask_w)
-
   cv::Mat boxes = outputs[0];
   cv::Mat logits = outputs[1];
   cv::Mat masks;
@@ -88,31 +83,33 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
     masks = outputs[2];
   }
 
-  // Apply sigmoid to logits to get probabilities
-  cv::Mat prob;
-  sigmoid(logits, prob);
-
   // Reshape for easier processing: remove batch dimension
-  // boxes: (N, 4), prob: (N, num_classes)
   boxes = boxes.reshape(1, {boxes.size[1], boxes.size[2]});
-  prob = prob.reshape(1, {prob.size[1], prob.size[2]});
+  logits = logits.reshape(1, {logits.size[1], logits.size[2]});
 
   int numDetections = boxes.rows;
-  int numClasses = prob.cols;
+  int numClasses = logits.cols;
 
-  // Get max confidence and corresponding label for each detection
-  std::vector<float> scores;
-  std::vector<int> labels;
-  std::vector<int> indices;
+  // Fused sigmoid + max-score scan: compute sigmoid only for the max logit
+  // per detection row, avoiding the full N×80 sigmoid computation
+  std::vector<float> scores(numDetections);
+  std::vector<int> labels(numDetections);
+  std::vector<int> indices(numDetections);
 
   for (int i = 0; i < numDetections; ++i) {
-    double maxScore;
-    cv::Point maxLoc;
-    cv::minMaxLoc(prob.row(i), nullptr, &maxScore, nullptr, &maxLoc);
-
-    scores.push_back(static_cast<float>(maxScore));
-    labels.push_back(maxLoc.x);
-    indices.push_back(i);
+    const float *row = logits.ptr<float>(i);
+    float maxLogit = row[0];
+    int maxIdx = 0;
+    for (int j = 1; j < numClasses; ++j) {
+      if (row[j] > maxLogit) {
+        maxLogit = row[j];
+        maxIdx = j;
+      }
+    }
+    // Apply sigmoid only to the max logit (monotonic, so max logit = max prob)
+    scores[i] = 1.0f / (1.0f + std::exp(-maxLogit));
+    labels[i] = maxIdx;
+    indices[i] = i;
   }
 
   // Sort by score descending
@@ -123,31 +120,36 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
   int numToKeep = std::min(maxNumberBoxes, static_cast<int>(indices.size()));
   indices.resize(numToKeep);
 
-  // Convert boxes from cxcywh to xyxyn format
-  cv::Mat boxesXyxy;
-  boxCxcywhToXyxyn(boxes, boxesXyxy);
-
-  // Scale boxes to original image size and filter by confidence
+  // Filter by confidence and convert only passing boxes (deferred conversion)
+  // Early termination: since indices are sorted by score, stop when below
+  // threshold
   for (int idx : indices) {
     float score = scores[idx];
 
-    if (score > confidenceThreshold) {
-      detection.scores.push_back(score);
-      detection.labels.push_back(labels[idx]);
-
-      // Scale boxes to original size
-      float xmin = boxesXyxy.at<float>(idx, 0) * originWidth;
-      float ymin = boxesXyxy.at<float>(idx, 1) * originHeight;
-      float xmax = boxesXyxy.at<float>(idx, 2) * originWidth;
-      float ymax = boxesXyxy.at<float>(idx, 3) * originHeight;
-
-      detection.boxes.emplace_back(xmin, ymin, xmax - xmin, ymax - ymin);
+    if (score <= confidenceThreshold) {
+      break; // All remaining scores are lower, no need to continue
     }
+
+    detection.scores.push_back(score);
+    detection.labels.push_back(labels[idx]);
+
+    // Convert this single box from cxcywh to xyxy and scale to image size
+    const float *boxRow = boxes.ptr<float>(idx);
+    float cx = boxRow[0];
+    float cy = boxRow[1];
+    float hw = boxRow[2] * 0.5f;
+    float hh = boxRow[3] * 0.5f;
+
+    float xmin = (cx - hw) * originWidth;
+    float ymin = (cy - hh) * originHeight;
+    float xmax = (cx + hw) * originWidth;
+    float ymax = (cy + hh) * originHeight;
+
+    detection.boxes.emplace_back(xmin, ymin, xmax - xmin, ymax - ymin);
   }
 
   // Process masks if available
   if (!masks.empty() && !detection.boxes.empty()) {
-    // Reshape masks: (N, mask_h, mask_w)
     masks = masks.reshape(1, {masks.size[1], masks.size[2], masks.size[3]});
 
     int maskHeight = masks.size[1];
@@ -157,15 +159,12 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
       int originalIdx = indices[i];
 
       if (originalIdx < masks.size[0]) {
-        // Extract mask for this detection
         cv::Mat mask(maskHeight, maskWidth, CV_32F,
                      masks.ptr<float>(originalIdx));
 
-        // Resize to original image size
         cv::Mat resizedMask;
         cv::resize(mask, resizedMask, cv::Size(originWidth, originHeight));
 
-        // Threshold and convert to binary mask
         cv::Mat binaryMask;
         cv::threshold(resizedMask, binaryMask, 0.0, 255.0, cv::THRESH_BINARY);
         binaryMask.convertTo(binaryMask, CV_8U);
@@ -239,15 +238,12 @@ void RFDETRModel::saveDetections(const cv::Mat &image,
       int label = detection.labels[i];
       cv::Scalar color = labelColors[label];
 
-      // Create colored mask
       cv::Mat colorMask(detection.masks[i].size(), CV_8UC3);
       colorMask.setTo(color, detection.masks[i]);
 
-      // Blend with overlay
       cv::addWeighted(overlay, 1.0, colorMask, 0.4, 0.0, overlay);
     }
 
-    // Blend overlay with original image
     cv::addWeighted(result, 0.6, overlay, 0.4, 0.0, result);
   }
 
@@ -257,10 +253,8 @@ void RFDETRModel::saveDetections(const cv::Mat &image,
     int label = detection.labels[i];
     cv::Scalar color = labelColors[label];
 
-    // Draw rectangle
     cv::rectangle(result, box, color, 4);
 
-    // Draw label text
     std::string text = std::to_string(label);
     int baseline = 0;
     cv::Size textSize =

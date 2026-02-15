@@ -1,21 +1,10 @@
-# ------------------------------------------------------------------------
-# MIT License
-# Copyright (c) 2026 PierreMarieCurie
-# ------------------------------------------------------------------------
-
-import sys
-import os 
-
-base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
-if base_path not in sys.path:
-    sys.path.insert(0, base_path)
-
 import numpy as np
 import random
 import time
 import cv2
 from typing import Optional
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+import onnxruntime as ort
 from .onnx_runtime import OnnxRuntimeSession
 from .utils import sigmoid, box_cxcywh_to_xyxyn
 

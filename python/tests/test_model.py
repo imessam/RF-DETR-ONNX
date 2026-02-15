@@ -1,23 +1,18 @@
-import sys
-import os 
-
-base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
-if base_path not in sys.path:
-    sys.path.insert(0, base_path) 
-
 import numpy as np
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from modules.model import RFDETRModel
 
 @pytest.fixture
 def mock_ort_session():
+    """Fixture to mock OnnxRuntimeSession."""
     with patch("modules.model.OnnxRuntimeSession") as mock:
         session_instance = mock.return_value
         session_instance.get_input_shape.return_value = [1, 3, 384, 384]
         yield session_instance
 
 def test_model_initialization(mock_ort_session):
+    """Test RFDETRModel initialization."""
     model = RFDETRModel("dummy_path.onnx", device="cpu")
     assert model.input_height == 384
     assert model.input_width == 384
@@ -25,6 +20,7 @@ def test_model_initialization(mock_ort_session):
     assert model.stds.shape == (3, 1, 1)
 
 def test_preprocess(mock_ort_session):
+    """Test image preprocessing."""
     model = RFDETRModel("dummy_path.onnx", device="cpu")
     # Create a dummy BGR image (H, W, C)
     dummy_image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -36,6 +32,7 @@ def test_preprocess(mock_ort_session):
     assert preprocessed.dtype == np.float32
 
 def test_predict_flow(mock_ort_session):
+    """Test full prediction flow with mocked session."""
     model = RFDETRModel("dummy_path.onnx", device="cpu")
     dummy_image = np.zeros((384, 384, 3), dtype=np.uint8)
     
@@ -57,6 +54,7 @@ def test_predict_flow(mock_ort_session):
     assert "total" in timings
 
 def test_post_process_shapes(mock_ort_session):
+    """Test post-processing logic and output shapes."""
     model = RFDETRModel("dummy_path.onnx", device="cpu")
     
     # Mock data: 300 queries, 80 classes

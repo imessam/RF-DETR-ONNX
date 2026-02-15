@@ -1,15 +1,3 @@
-# ------------------------------------------------------------------------
-# MIT License
-# Copyright (c) 2026 PierreMarieCurie
-# ------------------------------------------------------------------------
-
-import sys
-import os 
-
-base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
-if base_path not in sys.path:
-    sys.path.insert(0, base_path)
-
 import onnxruntime as ort
 import numpy as np
 

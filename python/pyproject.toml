@@ -7,14 +7,15 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy",
     "opencv-python",
-    "onnxruntime-gpu>1.17",
+    "onnxruntime>1.17",
     "pillow",
-    "pytest>=9.0.2",
     "requests",
 ]
 
 [project.optional-dependencies]
 gpu = ["onnxruntime-gpu>1.17"]
-cpu = ["onnxruntime>1.17"]
-export-tools = ["rfdetr", "rfdetr[onnxexport]", "onnx==1.19.0", "onnxsim==0.4.36", "onnxscript", "torch==2.8.0"]
+export = ["rfdetr", "rfdetr[onnxexport]", "onnx==1.19.0", "onnxsim==0.4.36", "onnxscript", "torch==2.8.0"]
 test = ["pytest>=9.0.2", "rfdetr"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

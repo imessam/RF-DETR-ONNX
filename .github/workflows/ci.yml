@@ -21,21 +21,7 @@ jobs:
     - name: Install uv
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-    - name: Install dependencies
+    - name: Run full validation pipeline
       run: |
         cd python
-        uv sync --all-extras
-
-    - name: Prepare models
-      env:
-        PYTHONPATH: .
-      run: |
-        cd python
-        uv run python prepare_models.py
-
-    - name: Run unit tests
-      env:
-        PYTHONPATH: .
-      run: |
-        cd python
-        uv run pytest tests/test_model.py
+        ./run_validation.sh nano

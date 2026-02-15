@@ -1,13 +1,7 @@
-import sys
-import os 
-
-base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
-if base_path not in sys.path:
-    sys.path.insert(0, base_path) 
-
 import pytest
 
 def pytest_addoption(parser):
+    """Add command line options for pytest."""
     parser.addoption("--arch", action="store", default="nano", help="Torch model architecture (nano, small, base, medium)")
     parser.addoption("--device", action="store", default="gpu", choices=["cpu", "gpu"], help="Target device (cpu, gpu)")
     parser.addoption("--model_path", action="store", default="tests/test_models/inference_model.sim.onnx", help="Path to ONNX model")
@@ -17,6 +11,7 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def test_config(request):
+    """Fixture to provide test configuration from command line options."""
     return {
         "arch": request.config.getoption("--arch"),
         "device": request.config.getoption("--device"),

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Configuration
 ARCH=${1:-nano}

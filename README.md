@@ -17,9 +17,9 @@ The project is organized within the `python/` directory:
 
 - `python/inference.py`: High-level inference demo script.
 - `benchmarks/`: Automated performance measurement suite.
-  - `run_benchmarks.sh`: Master script to run all tests and generate a report.
-  - `python/`: Python-side benchmarking tools.
-  - `cpp/`: C++-side benchmarking tools.
+  - `run_benchmarks.sh`: Master benchmark script (runs Python & C++ tests).
+  - `generate_report.py`: Aggregates JSON results into a Markdown report.
+  - `results/`: Output directory for benchmark artifacts.
 - `python/modules/`: Core logic and modules.
   - `model.py`: High-level detection model class (`RFDETRModel`).
   - `onnx_runtime.py`: ONNX Runtime session management.
@@ -135,6 +135,10 @@ cmake ..
 make -j$(nproc)
 ```
 
+### Optimization: Zero-Copy Inference
+
+The C++ implementation is optimized for high-throughput inference by using **zero-copy output handling**. Instead of copying inference results from ONNX Runtime memory, the `OnnxRuntimeSession` wraps the raw output tensors directly into `cv::Mat` objects. This significantly reduces CPU overhead, especially when working with high-resolution segmentation masks.
+
 ### Usage
 
 ```bash
@@ -150,16 +154,26 @@ Inference performance measured on **RF-DETR Nano** (384x384) using a laptop with
 
 ## Benchmarking
 
-Performance results and automated benchmarking tools are available in the [benchmarks/](benchmarks/) directory. The suite tests multiple scenarios:
-- **Multi-Images**: Processes a set of COCO sample images.
-- **Video**: Measures real-time processing speed on a standard test video.
+Performance results and automated benchmarking tools are available in the [benchmarks/](benchmarks/) directory. The suite evaluates both Python and C++ implementations across CPU and GPU providers.
 
-To run the full suite:
-```bash
-./benchmarks/run_benchmarks.sh [iterations]
-```
+### Running Benchmarks
 
-This will build the C++ components, run both Python and C++ benchmarks across CPU/GPU, and generate a detailed report in `benchmarks/results.md`.
+1. **Prepare Models**: Ensure your `.onnx` models are in `models/onnx/`.
+2. **Execute Suite**:
+   ```bash
+   cd benchmarks
+   ./run_benchmarks.sh -n 10 -v
+   ```
+
+#### Options
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-n <int>` | `10` | Number of benchmark iterations. |
+| `-c <float>`| `2.0`| Cooldown period (seconds) between runs. |
+| `-v` | `Off` | Enable verbose per-iteration logging. |
+| `-u <url>` | `None`| URL to download a model if none are found. |
+
+The script will build the C++ components, run inference across all discovered models, and generate a detailed report in `benchmarks/results/results.md`.
 
 
 ## License

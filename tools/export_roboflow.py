@@ -2,7 +2,7 @@ import argparse
 import sys
 import os 
 
-base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 if base_path not in sys.path:
     sys.path.insert(0, base_path)
 
@@ -19,7 +19,7 @@ MODELS = {
 def parse_args():
     parser = argparse.ArgumentParser(description="Export RF-DETR model via Roboflow API")
     parser.add_argument("--weights", type=str, required=True, help="Path to the checkpoint (.pth) file")
-    parser.add_argument("--model-type", type=str, default="nano", choices=MODELS.keys(), help="Model architecture type")
+    parser.add_argument("--model-type", type=str, required=True, choices=MODELS.keys(), help="Model architecture type")
     parser.add_argument("--output-dir", type=str, default=os.path.join(base_path, "models"), help="Directory to save the exported model")
     parser.add_argument("--opset", type=int, default=17, help="ONNX opset version")
     parser.add_argument("--batch-size", type=int, default=1, help="Batch size for export")

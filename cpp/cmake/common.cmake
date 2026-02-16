@@ -26,12 +26,12 @@ if(NOT onnxruntime_FOUND)
     # Try to find ONNX Runtime manually
     find_path(ONNXRUNTIME_INCLUDE_DIR
         NAMES onnxruntime_cxx_api.h
-        PATHS /usr/include /usr/local/include /home/essam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/include
+        PATHS /usr/include /usr/local/include /home/imessam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/include
         PATH_SUFFIXES onnxruntime onnxruntime/core/session
     )
     find_library(ONNXRUNTIME_LIBRARY
         NAMES onnxruntime
-        PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu /home/essam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/lib/
+        PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu /home/imessam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/lib/
     )
     if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
         set(onnxruntime_FOUND TRUE)

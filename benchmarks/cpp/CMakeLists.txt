@@ -15,11 +15,11 @@ set(CPP_ROOT ${REPO_ROOT}/cpp)
 include_directories(
     ${CPP_ROOT}/include
     ${OpenCV_INCLUDE_DIRS}
-    /home/essam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/include
+    /home/imessam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/include
 )
 
 # ONNX Runtime manually
-set(ONNXRUNTIME_LIB /home/essam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/lib/libonnxruntime.so)
+set(ONNXRUNTIME_LIB /home/imessam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/lib/libonnxruntime.so)
 
 # Link against the library we already built
 link_directories(${CPP_ROOT}/build/src)

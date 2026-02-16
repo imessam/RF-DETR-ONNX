@@ -144,20 +144,20 @@ void OnnxRuntimeSession::run(const cv::Mat &inputData,
   const char *inputNames[] = {inputName_.c_str()};
 
   // Run inference
-  auto outputTensors =
+  lastOutputTensors_ =
       session_->Run(Ort::RunOptions{nullptr}, inputNames, &inputTensor, 1,
                     cachedOutputNamesPtr_.data(), numOutputs_);
 
-  // Convert output tensors to OpenCV Mats
+  // Convert output tensors to OpenCV Mats (Zero-copy)
   outputs.clear();
   outputs.reserve(numOutputs_);
 
-  for (size_t i = 0; i < outputTensors.size(); ++i) {
-    auto tensorInfo = outputTensors[i].GetTensorTypeAndShapeInfo();
+  for (size_t i = 0; i < lastOutputTensors_.size(); ++i) {
+    auto tensorInfo = lastOutputTensors_[i].GetTensorTypeAndShapeInfo();
     auto shape = tensorInfo.GetShape();
 
     // Get pointer to tensor data
-    float *tensorData = outputTensors[i].GetTensorMutableData<float>();
+    float *tensorData = lastOutputTensors_[i].GetTensorMutableData<float>();
 
     // Convert shape to OpenCV dims
     std::vector<int> cvShape;
@@ -165,12 +165,8 @@ void OnnxRuntimeSession::run(const cv::Mat &inputData,
       cvShape.push_back(static_cast<int>(dim));
     }
 
-    // Create Mat (copy data so ORT can reuse arena buffers)
-    cv::Mat output(cvShape, CV_32F);
-    std::memcpy(output.data, tensorData,
-                tensorInfo.GetElementCount() * sizeof(float));
-
-    outputs.push_back(output);
+    // Create Mat wrapping the pointer (Zero-copy)
+    outputs.emplace_back(cvShape, CV_32F, tensorData);
   }
 }
 

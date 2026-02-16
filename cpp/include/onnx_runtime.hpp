@@ -71,6 +71,9 @@ private:
 
   // Cached for performance: avoid rebuilding on every run() call
   std::vector<const char *> cachedOutputNamesPtr_;
+
+  // Store output tensors to keep the data valid for zero-copy cv::Mat views
+  std::vector<Ort::Value> lastOutputTensors_;
 };
 
 } // namespace rfdetr

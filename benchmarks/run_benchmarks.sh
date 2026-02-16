@@ -1,12 +1,42 @@
 #!/bin/bash
 set -e
 
-# Configuration
-ITERATIONS=${1:-10}
-COOLDOWN_SECONDS=${COOLDOWN_SECONDS:-2}  # Seconds to rest between benchmarks
-SLEEP_PER_IMAGE=${SLEEP_PER_IMAGE:-0.1}  # Seconds to rest between images
-VERBOSE=${VERBOSE:-0}                    # Set to 1 for per-iteration logging
-MODEL_URL="${MODEL_URL:-}"  # Set this environment variable or edit below
+# Default Configuration
+ITERATIONS=10
+COOLDOWN_SECONDS=2
+SLEEP_PER_IMAGE=0.1
+VERBOSE=0
+MODEL_URL=""
+
+usage() {
+    echo "Usage: ./run_benchmarks.sh [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -n <int>    Number of iterations (default: 10)"
+    echo "  -c <float>  Cooldown seconds between benchmarks (default: 2)"
+    echo "  -s <float>  Sleep per image iteration (default: 0.1)"
+    echo "  -v          Enable verbose per-iteration logging"
+    echo "  -u <url>    URL to download ONNX model if none found"
+    echo "  -h          Show this help message"
+    echo ""
+    echo "Example:"
+    echo "  ./run_benchmarks.sh -n 5 -v -c 1"
+    exit 0
+}
+
+# Parse CLI arguments
+while getopts "n:c:s:u:vh" opt; do
+    case "$opt" in
+        n) ITERATIONS=$OPTARG ;;
+        c) COOLDOWN_SECONDS=$OPTARG ;;
+        s) SLEEP_PER_IMAGE=$OPTARG ;;
+        u) MODEL_URL=$OPTARG ;;
+        v) VERBOSE=1 ;;
+        h) usage ;;
+        *) usage ;;
+    esac
+done
+
 MODELS_DIR="models/onnx"
 IMAGES_DIR="benchmarks/assets/images"
 

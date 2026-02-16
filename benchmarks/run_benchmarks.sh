@@ -3,13 +3,9 @@ set -e
 
 # Configuration
 ITERATIONS=${1:-10}
-MODEL_PATH="models/rf-detr-nano/rf-detr-nano.sim.onnx"
+MODEL_URL="${MODEL_URL:-}"  # Set this environment variable or edit below
+MODELS_DIR="models/onnx"
 IMAGES_DIR="benchmarks/assets/images"
-VIDEO_PATH="benchmarks/assets/video/sample.mp4"
-ONNX_LIB_PATH="/home/essam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0/lib"
-
-# Setup environment
-export LD_LIBRARY_PATH="$ONNX_LIB_PATH:$LD_LIBRARY_PATH"
 
 # Paths
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,20 +17,51 @@ echo ">>> Cleaning old results..."
 rm -rf "$RESULTS_DIR"
 mkdir -p "$RESULTS_DIR"
 
+# Ensure environment is synced with GPU support
+echo ">>> Syncing Python environment..."
+cd "$REPO_ROOT"
+uv sync
+
 echo ">>> Starting Benchmarks with $ITERATIONS iterations..."
 
-# 0. Asset Check
-if [ ! -d "$BENCH_DIR/assets" ]; then
-    echo ">>> Downloading Benchmarking Assets..."
-    mkdir -p "$BENCH_DIR/assets/images" "$BENCH_DIR/assets/video"
+# 0. Download Model (if MODELS_DIR is empty and MODEL_URL is set)
+# Check if there are any .onnx files in models/onnx
+if [ ! -d "$REPO_ROOT/$MODELS_DIR" ] || [ -z "$(ls -A "$REPO_ROOT/$MODELS_DIR"/*.onnx 2>/dev/null)" ]; then
+    if [ -n "$MODEL_URL" ]; then
+        # Extract filename from URL or use a default
+        MODEL_NAME_FROM_URL="${MODEL_URL##*/}"
+        if [[ ! "$MODEL_NAME_FROM_URL" == *.onnx ]]; then
+            MODEL_NAME_FROM_URL="model.onnx"
+        fi
+        DOWNLOAD_PATH="$MODELS_DIR/$MODEL_NAME_FROM_URL"
+        
+        echo "0 >>> Downloading model from $MODEL_URL to $DOWNLOAD_PATH..."
+        mkdir -p "$(dirname "$REPO_ROOT/$DOWNLOAD_PATH")"
+        curl -L -o "$REPO_ROOT/$DOWNLOAD_PATH" "$MODEL_URL"
+        
+        if [ $? -ne 0 ]; then
+            echo "❌ Error: Failed to download model from $MODEL_URL"
+            exit 1
+        fi
+        echo "✓ Model downloaded successfully"
+    else
+        echo "⚠️ Warning: No models found in $MODELS_DIR and MODEL_URL is not set"
+    fi
+else
+    echo "✓ Models already exist in $MODELS_DIR"
+fi
+
+# 1. Asset Check
+if [ ! -d "$BENCH_DIR/assets/images" ]; then
+    echo "1 >>> Downloading Benchmarking Assets..."
+    mkdir -p "$BENCH_DIR/assets/images"
     curl -o "$BENCH_DIR/assets/images/coco_1.jpg" http://images.cocodataset.org/val2017/000000000139.jpg
     curl -o "$BENCH_DIR/assets/images/coco_2.jpg" http://images.cocodataset.org/val2017/000000000285.jpg
     curl -o "$BENCH_DIR/assets/images/coco_3.jpg" http://images.cocodataset.org/val2017/000000000632.jpg
-    curl -o "$BENCH_DIR/assets/video/sample.mp4" https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/person-bicycle-car-detection.mp4
 fi
 
-# 1. Build C++ Library & Benchmark
-echo ">>> Building C++ Library..."
+# 2. Build C++ Library & Benchmark
+echo "2 >>> Building C++ Library..."
 cd "$REPO_ROOT/cpp"
 mkdir -p build
 cd build
@@ -42,97 +69,72 @@ cmake ..
 make -j$(nproc)
 
 echo ">>> Building C++ Benchmark..."
-cd "$BENCH_DIR/cpp"
+cd "$REPO_ROOT/cpp/benchmarks"
 mkdir -p build
 cd build
 cmake ..
 make -j$(nproc)
 
-# 2. Run Python Benchmarks
-cd "$REPO_ROOT/python"
-test_inputs=("multi_images:$IMAGES_DIR" "video:$VIDEO_PATH")
+# 3. Discover Models
+echo "3 >>> Discovering ONNX models..."
+cd "$REPO_ROOT"
+MODELS_DIR="models/onnx"
 
-for test in "${test_inputs[@]}"; do
-    type="${test%%:*}"
-    path="${test#*:}"
-    echo ">>> Running Python $type Benchmark (CPU)..."
-    uv run "../benchmarks/python/benchmark.py" --model "$REPO_ROOT/$MODEL_PATH" --input "$REPO_ROOT/$path" --device cpu --iterations "$ITERATIONS" --output "$RESULTS_DIR/python_cpu_${type}.json"
-    
-    echo ">>> Running Python $type Benchmark (GPU)..."
-    uv run "../benchmarks/python/benchmark.py" --model "$REPO_ROOT/$MODEL_PATH" --input "$REPO_ROOT/$path" --device gpu --iterations "$ITERATIONS" --output "$RESULTS_DIR/python_gpu_${type}.json"
+# Find all .onnx files in models/onnx directory
+if [ ! -d "$MODELS_DIR" ] || [ -z "$(ls -A $MODELS_DIR/*.onnx 2>/dev/null)" ]; then
+    echo "❌ Error: No ONNX models found in $MODELS_DIR"
+    echo "Please add .onnx model files to $MODELS_DIR/ or set MODEL_URL to download one"
+    exit 1
+fi
+
+# Get list of models
+MODELS=($(ls "$MODELS_DIR"/*.onnx 2>/dev/null))
+echo "Found ${#MODELS[@]} model(s):"
+for model in "${MODELS[@]}"; do
+    echo "  - $(basename "$model")"
 done
 
-# 3. Run C++ Benchmarks
-cd "$BENCH_DIR/cpp"
-for test in "${test_inputs[@]}"; do
-    type="${test%%:*}"
-    path="${test#*:}"
-    echo ">>> Running C++ $type Benchmark (CPU)..."
-    ./build/rfdetr_benchmark "$REPO_ROOT/$MODEL_PATH" "$REPO_ROOT/$path" cpu "$ITERATIONS"
-    mv benchmark_cpp_cpu.json "$RESULTS_DIR/cpp_cpu_${type}.json"
+# 4. Run Benchmarks for Each Model
+test_inputs=("images:$IMAGES_DIR")
+
+for model_path in "${MODELS[@]}"; do
+    model_name=$(basename "$model_path" .onnx)
+    echo ""
+    echo "========================================="
+    echo "Benchmarking Model: $model_name"
+    echo "========================================="
     
-    echo ">>> Running C++ $type Benchmark (GPU)..."
-    ./build/rfdetr_benchmark "$REPO_ROOT/$MODEL_PATH" "$REPO_ROOT/$path" gpu "$ITERATIONS"
-    mv benchmark_cpp_gpu.json "$RESULTS_DIR/cpp_gpu_${type}.json"
-done
-
-# 4. Generate Report
-echo ">>> Generating Results Report..."
-cd "$BENCH_DIR"
-uv run python3 -c "
-import json, os
-from datetime import datetime
-
-results_dir = 'results'
-output_md = 'results.md'
-
-md = f'# RF-DETR Benchmark Results\n\nGenerated on: {datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\")}\n\n'
-
-test_types = ['multi_images', 'video']
-for t in test_types:
-    md += f'## Test Case: {t.replace(\"_\", \" \").title()}\n\n'
-    md += '| Implementation | Device | Prepro (ms) | ORT (ms) | Post (ms) | Total (ms) | FPS |\n'
-    md += '| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n'
-    
-    rows = []
-    for impl in ['python', 'cpp']:
-        for dev in ['cpu', 'gpu']:
-            f = f'{impl}_{dev}_{t}.json'
-            path = os.path.join(results_dir, f)
-            if os.path.exists(path):
-                with open(path, 'r') as jf:
-                    r = json.load(jf)
-                    m = r['metrics']
-                    rows.append({
-                        'impl': r['implementation'],
-                        'dev': r['device'].upper(),
-                        'pre': m['preprocessing']['mean'],
-                        'ort': m['ort_run']['mean'],
-                        'post': m['postprocessing']['mean'],
-                        'total': m['total_processing']['mean'],
-                        'fps': m['total_processing']['fps']
-                    })
-    
-    if rows:
-        min_pre = min(r['pre'] for r in rows)
-        min_ort = min(r['ort'] for r in rows)
-        min_post = min(r['post'] for r in rows)
-        min_total = min(r['total'] for r in rows)
-        max_fps = max(r['fps'] for r in rows)
+    for test in "${test_inputs[@]}"; do
+        type="${test%%:*}"
+        path="${test#*:}"
         
-        for r in rows:
-            pre_str = f'**{r[\"pre\"]:.2f}**' if r['pre'] == min_pre else f'{r[\"pre\"]:.2f}'
-            ort_str = f'**{r[\"ort\"]:.2f}**' if r['ort'] == min_ort else f'{r[\"ort\"]:.2f}'
-            post_str = f'**{r[\"post\"]:.2f}**' if r['post'] == min_post else f'{r[\"post\"]:.2f}'
-            total_str = f'**{r[\"total\"]:.2f}**' if r['total'] == min_total else f'{r[\"total\"]:.2f}'
-            fps_str = f'**{r[\"fps\"]:.2f}** 🚀' if r['fps'] == max_fps else f'{r[\"fps\"]:.2f}'
-            md += f'| {r[\"impl\"]} | {r[\"dev\"]} | {pre_str} | {ort_str} | {post_str} | {total_str} | {fps_str} |\n'
-    md += '\n'
+        # Python CPU
+        echo "4 >>> Running Python $type Benchmark (CPU)..."
+        uv run python/benchmarks/benchmark.py --model "$model_path" --input "$REPO_ROOT/$path" --device cpu --iterations "$ITERATIONS" --output "$RESULTS_DIR/python_cpu_${type}_${model_name}.json"
+        
+        # Python GPU
+        echo "4 >>> Running Python $type Benchmark (GPU)..."
+        uv run python/benchmarks/benchmark.py --model "$model_path" --input "$REPO_ROOT/$path" --device gpu --iterations "$ITERATIONS" --output "$RESULTS_DIR/python_gpu_${type}_${model_name}.json"
+        
+        # C++ CPU
+        echo "4 >>> Running C++ $type Benchmark (CPU)..."
+        "$REPO_ROOT/cpp/benchmarks/build/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" cpu "$ITERATIONS"
+        mv benchmark_cpp_cpu.json "$RESULTS_DIR/cpp_cpu_${type}_${model_name}.json"
+        
+        # C++ GPU
+        echo "4 >>> Running C++ $type Benchmark (GPU)..."
+        "$REPO_ROOT/cpp/benchmarks/build/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" gpu "$ITERATIONS"
+        mv benchmark_cpp_gpu.json "$RESULTS_DIR/cpp_gpu_${type}_${model_name}.json"
+    done
+done
 
-with open(output_md, 'w') as out:
-    out.write(md)
+# 5. Generate Report
+echo "5 >>> Generating Results Report..."
+cd "$BENCH_DIR"
+uv run python generate_report.py --results-dir results --output results/results.md
 
-print(f'Done! Summary saved to {output_md}')
-"
-
+echo ""
 echo ">>> All Benchmarks Complete!"
+echo "Results saved to: $BENCH_DIR/results/"
+echo "Report saved to: $BENCH_DIR/results/results.md"
+

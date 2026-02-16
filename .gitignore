@@ -14,3 +14,4 @@
 .vscode/
 build/
 .cache/
+.venv/

@@ -4,26 +4,25 @@ project(RFDETRONNXTest VERSION 1.0
                   DESCRIPTION "RF-DETR-ONNX Test"
                   LANGUAGES CXX)
 
+# Top-level paths
+set(REPO_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+set(CPP_ROOT ${REPO_ROOT}/cpp)
+
 include(${CMAKE_CURRENT_LIST_DIR}/../cmake/common.cmake)
 
-enable_testing()
+# Link against the library we already built
+link_directories(${CPP_ROOT}/build/src)
 
 add_executable(
-  rfdetr_onnx_test
-
-  ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
-
-  ${CMAKE_CURRENT_LIST_DIR}/test_class_implemented_derived.cpp
+  generate_onnx
+  ${CMAKE_CURRENT_LIST_DIR}/generate_onnx.cpp
 )
 
-target_include_directories(rfdetr_onnx_test PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
-target_include_directories(rfdetr_onnx_test PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../test-libs/another_module/cpp/include)
-
+target_include_directories(generate_onnx PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
 
 target_link_libraries(
-  rfdetr_onnx_test
-  GTest::gtest_main
+  generate_onnx
+  rfdetr_onnx
+  ${OpenCV_LIBS}
+  ${ONNXRUNTIME_LIBRARY}
 )
-
-include(GoogleTest)
-gtest_discover_tests(rfdetr_onnx_test)

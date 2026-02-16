@@ -19,7 +19,6 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v5
 
-    - name: Run full validation pipeline
+    - name: Run accuracy tests
       run: |
-        cd python
-        bash run_validation.sh nano
+        bash tests/run_tests.sh -d cpu

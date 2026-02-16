@@ -153,10 +153,10 @@ def generate_test_case_table(test_type: str, model_name: str, results: Dict[str,
                 rows.append({
                     'impl': result.get('implementation', impl.title()),
                     'device': result.get('device', dev).upper(),
-                    'preprocess': metrics.get('preprocessing', {}).get('mean', 0),
-                    'ort_run': metrics.get('ort_run', {}).get('mean', 0),
-                    'postprocess': metrics.get('postprocessing', {}).get('mean', 0),
-                    'total': metrics.get('total_processing', {}).get('mean', 0),
+                    'preprocess': metrics.get('preprocessing', {}).get('median', 0),
+                    'ort_run': metrics.get('ort_run', {}).get('median', 0),
+                    'postprocess': metrics.get('postprocessing', {}).get('median', 0),
+                    'total': metrics.get('total_processing', {}).get('median', 0),
                     'fps': metrics.get('total_processing', {}).get('fps', 0),
                 })
     

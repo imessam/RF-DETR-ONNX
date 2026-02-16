@@ -3,6 +3,9 @@ set -e
 
 # Configuration
 ITERATIONS=${1:-10}
+COOLDOWN_SECONDS=${COOLDOWN_SECONDS:-2}  # Seconds to rest between benchmarks
+SLEEP_PER_IMAGE=${SLEEP_PER_IMAGE:-0.1}  # Seconds to rest between images
+VERBOSE=${VERBOSE:-0}                    # Set to 1 for per-iteration logging
 MODEL_URL="${MODEL_URL:-}"  # Set this environment variable or edit below
 MODELS_DIR="models/onnx"
 IMAGES_DIR="benchmarks/assets/images"
@@ -11,6 +14,13 @@ IMAGES_DIR="benchmarks/assets/images"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BENCH_DIR="$REPO_ROOT/benchmarks"
 RESULTS_DIR="$BENCH_DIR/results"
+
+VERBOSE_PY_ARG=""
+VERBOSE_CPP_ARG=""
+if [ "$VERBOSE" -eq 1 ]; then
+    VERBOSE_PY_ARG="--verbose"
+    VERBOSE_CPP_ARG="verbose"
+fi
 
 # Clean old results
 echo ">>> Cleaning old results..."
@@ -78,7 +88,6 @@ make -j$(nproc)
 # 3. Discover Models
 echo "3 >>> Discovering ONNX models..."
 cd "$REPO_ROOT"
-MODELS_DIR="models/onnx"
 
 # Find all .onnx files in models/onnx directory
 if [ ! -d "$MODELS_DIR" ] || [ -z "$(ls -A $MODELS_DIR/*.onnx 2>/dev/null)" ]; then
@@ -109,21 +118,29 @@ for model_path in "${MODELS[@]}"; do
         path="${test#*:}"
         
         # Python CPU
+        echo ">>> Resting for $COOLDOWN_SECONDS seconds..."
+        sleep "$COOLDOWN_SECONDS"
         echo "4 >>> Running Python $type Benchmark (CPU)..."
-        uv run python/benchmarks/benchmark.py --model "$model_path" --input "$REPO_ROOT/$path" --device cpu --iterations "$ITERATIONS" --output "$RESULTS_DIR/python_cpu_${type}_${model_name}.json"
+        uv run python/benchmarks/benchmark.py --model "$model_path" --input "$REPO_ROOT/$path" --device cpu --iterations "$ITERATIONS" --sleep-per-image "$SLEEP_PER_IMAGE" $VERBOSE_PY_ARG --output "$RESULTS_DIR/python_cpu_${type}_${model_name}.json"
         
         # Python GPU
+        echo ">>> Resting for $COOLDOWN_SECONDS seconds..."
+        sleep "$COOLDOWN_SECONDS"
         echo "4 >>> Running Python $type Benchmark (GPU)..."
-        uv run python/benchmarks/benchmark.py --model "$model_path" --input "$REPO_ROOT/$path" --device gpu --iterations "$ITERATIONS" --output "$RESULTS_DIR/python_gpu_${type}_${model_name}.json"
+        uv run python/benchmarks/benchmark.py --model "$model_path" --input "$REPO_ROOT/$path" --device gpu --iterations "$ITERATIONS" --sleep-per-image "$SLEEP_PER_IMAGE" $VERBOSE_PY_ARG --output "$RESULTS_DIR/python_gpu_${type}_${model_name}.json"
         
         # C++ CPU
+        echo ">>> Resting for $COOLDOWN_SECONDS seconds..."
+        sleep "$COOLDOWN_SECONDS"
         echo "4 >>> Running C++ $type Benchmark (CPU)..."
-        "$REPO_ROOT/cpp/benchmarks/build/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" cpu "$ITERATIONS"
+        "$REPO_ROOT/cpp/benchmarks/build/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" cpu "$ITERATIONS" "$SLEEP_PER_IMAGE" $VERBOSE_CPP_ARG
         mv benchmark_cpp_cpu.json "$RESULTS_DIR/cpp_cpu_${type}_${model_name}.json"
         
         # C++ GPU
+        echo ">>> Resting for $COOLDOWN_SECONDS seconds..."
+        sleep "$COOLDOWN_SECONDS"
         echo "4 >>> Running C++ $type Benchmark (GPU)..."
-        "$REPO_ROOT/cpp/benchmarks/build/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" gpu "$ITERATIONS"
+        "$REPO_ROOT/cpp/benchmarks/build/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" gpu "$ITERATIONS" "$SLEEP_PER_IMAGE" $VERBOSE_CPP_ARG
         mv benchmark_cpp_gpu.json "$RESULTS_DIR/cpp_gpu_${type}_${model_name}.json"
     done
 done

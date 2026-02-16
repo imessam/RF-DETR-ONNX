@@ -1,21 +1,27 @@
 #include "rfdetr_model.hpp"
 #include <algorithm>
+#include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <numeric>
 #include <opencv2/opencv.hpp>
+#include <thread>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 struct Stats {
   float mean;
+  float median;
   float std;
   float min;
   float max;
 };
 
-Stats calculateStats(const std::vector<float> &times) {
+Stats calculateStats(std::vector<float> times) {
   if (times.empty())
-    return {0, 0, 0, 0};
+    return {0, 0, 0, 0, 0};
 
   float sum = std::accumulate(times.begin(), times.end(), 0.0f);
   float mean = sum / times.size();
@@ -25,13 +31,21 @@ Stats calculateStats(const std::vector<float> &times) {
   float std = std::sqrt(sq_sum / times.size() - mean * mean);
 
   auto [min_it, max_it] = std::minmax_element(times.begin(), times.end());
+  float min_val = *min_it;
+  float max_val = *max_it;
 
-  return {mean, std, *min_it, *max_it};
+  // Calculate median
+  std::sort(times.begin(), times.end());
+  float median;
+  size_t size = times.size();
+  if (size % 2 == 0) {
+    median = (times[size / 2 - 1] + times[size / 2]) / 2;
+  } else {
+    median = times[size / 2];
+  }
+
+  return {mean, median, std, min_val, max_val};
 }
-
-#include <filesystem>
-
-namespace fs = std::filesystem;
 
 int main(int argc, char **argv) {
   if (argc < 4) {
@@ -45,6 +59,8 @@ int main(int argc, char **argv) {
   std::string inputPath = argv[2];
   std::string device = argv[3];
   int numIterations = (argc > 4) ? std::stoi(argv[4]) : 100;
+  float sleepPerImage = (argc > 5) ? std::stof(argv[5]) : 0.0f;
+  bool verbose = (argc > 6 && std::string(argv[6]) == "verbose");
   int warmupIterations = 10;
 
   std::cout << "Initializing model: " << modelPath << " on " << device
@@ -109,17 +125,26 @@ int main(int argc, char **argv) {
   std::vector<float> pre_times, ort_times, post_times, total_processing_times;
 
   for (int i = 0; i < numIterations; ++i) {
+    if (sleepPerImage > 0) {
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(static_cast<int>(sleepPerImage * 1000)));
+    }
     rfdetr::Detection det;
     rfdetr::Timings timings;
     model.predict(images[i % images.size()], det, timings);
 
+    float total = timings.preprocess + timings.ortRun + timings.postprocess;
     pre_times.push_back(timings.preprocess);
     ort_times.push_back(timings.ortRun);
     post_times.push_back(timings.postprocess);
-    total_processing_times.push_back(timings.preprocess + timings.ortRun +
-                                     timings.postprocess);
+    total_processing_times.push_back(total);
 
-    if ((i + 1) % 10 == 0) {
+    if (verbose) {
+      printf("Iteration %3d: Pre: %6.2fms, ORT: %6.2fms, Post: %6.2fms, Total: "
+             "%6.2fms\n",
+             i + 1, timings.preprocess, timings.ortRun, timings.postprocess,
+             total);
+    } else if ((i + 1) % 10 == 0) {
       std::cout << "Iteration " << (i + 1) << "/" << numIterations << std::endl;
     }
   }
@@ -138,19 +163,36 @@ int main(int argc, char **argv) {
       << "  \"data_source\": \"" << inputPath << "\",\n"
       << "  \"metrics\": {\n"
       << "    \"preprocessing\": {\"mean\": " << pre_stats.mean
-      << ", \"std\": " << pre_stats.std << ", \"min\": " << pre_stats.min
-      << ", \"max\": " << pre_stats.max << "},\n"
+      << ", \"median\": " << pre_stats.median << ", \"std\": " << pre_stats.std
+      << ", \"min\": " << pre_stats.min << ", \"max\": " << pre_stats.max
+      << "},\n"
       << "    \"ort_run\": {\"mean\": " << ort_stats.mean
-      << ", \"std\": " << ort_stats.std << ", \"min\": " << ort_stats.min
-      << ", \"max\": " << ort_stats.max << "},\n"
+      << ", \"median\": " << ort_stats.median << ", \"std\": " << ort_stats.std
+      << ", \"min\": " << ort_stats.min << ", \"max\": " << ort_stats.max
+      << "},\n"
       << "    \"postprocessing\": {\"mean\": " << post_stats.mean
+      << ", \"median\": " << post_stats.median
       << ", \"std\": " << post_stats.std << ", \"min\": " << post_stats.min
       << ", \"max\": " << post_stats.max << "},\n"
       << "    \"total_processing\": {\"mean\": " << total_stats.mean
+      << ", \"median\": " << total_stats.median
       << ", \"std\": " << total_stats.std << ", \"min\": " << total_stats.min
       << ", \"max\": " << total_stats.max
-      << ", \"fps\": " << 1000.0 / total_stats.mean << "}\n"
-      << "  }\n"
+      << ", \"fps\": " << 1000.0 / total_stats.median << "}\n"
+      << "  },\n"
+      << "  \"iterations\": [\n";
+
+  for (int i = 0; i < numIterations; ++i) {
+    ofs << "    {\n"
+        << "      \"index\": " << i + 1 << ",\n"
+        << "      \"preprocessing\": " << pre_times[i] << ",\n"
+        << "      \"ort_run\": " << ort_times[i] << ",\n"
+        << "      \"postprocessing\": " << post_times[i] << ",\n"
+        << "      \"total\": " << total_processing_times[i] << "\n"
+        << "    }" << (i == numIterations - 1 ? "" : ",") << "\n";
+  }
+
+  ofs << "  ]\n"
       << "}\n";
 
   std::cout << "Results saved to " << outputFilename << std::endl;

@@ -13,28 +13,31 @@ RF-DETR is a transformer-based object detection and instance segmentation archit
 
 ## Project Structure
 
-The project is organized within the `python/` directory:
+The project is organized into four main components:
 
+### 1. [Python Implementation](python/)
+Modular Python implementation for fast prototyping and high-level usage.
 - `python/inference.py`: High-level inference demo script.
-- `benchmarks/`: Automated performance measurement suite.
-  - `run_benchmarks.sh`: Master benchmark script (runs Python & C++ tests).
-  - `generate_report.py`: Aggregates JSON results into a Markdown report.
-  - `results/`: Output directory for benchmark artifacts.
-- `python/modules/`: Core logic and modules.
-  - `model.py`: High-level detection model class (`RFDETRModel`).
-  - `onnx_runtime.py`: ONNX Runtime session management.
-  - `utils.py`: Common utility functions.
-  - `export_roboflow.py`: Script to convert RF-DETR checkpoints to ONNX via Roboflow API.
+- `python/modules/`: Core logic (model classes, session management).
 - `python/tests/`: Quality assurance and validation tools.
-  - `prepare_models.py`: Handles weight download and ONNX export.
-  - `generate_torch_results.py`: Reference result generator (PyTorch).
-  - `generate_onnx_results.py`: Target result generator (ONNX).
-  - `test_val.py`: Accuracy comparison test suite.
-- `output/`: Default directory for inference results.
-- `cpp/`: Modular C++ implementation of RF-DETR.
-  - `include/`: Header files for model, session, and utils.
-  - `src/`: Source code implementation.
-  - `CMakeLists.txt`: Build configuration.
+- `python/run_validation.sh`: Pipeline for model accuracy verification.
+
+### 2. [C++ Implementation](cpp/)
+High-performance, modular library for production deployment.
+- `cpp/include/`: Header files for model, session, and utils.
+- `cpp/src/`: Source code implementation (Zero-copy optimized).
+- `cpp/CMakeLists.txt`: Build configuration.
+
+### 3. [Benchmarks](benchmarks/)
+Automated performance measurement suite.
+- `benchmarks/run_benchmarks.sh`: Master benchmark script (Python & C++).
+- `benchmarks/generate_report.py`: Aggregates JSON results into a Markdown report.
+- `benchmarks/assets/`: Standard images and videos for testing.
+
+### 4. [Tools](tools/)
+Utility scripts for model management and conversion.
+- `tools/export_roboflow.py`: Convert Roboflow checkpoints to ONNX.
+- `tools/export.py`: General ONNX export and simplification utilities.
 
 ## Installation
 
@@ -73,15 +76,11 @@ The master script handles dependency syncing, model preparation, result generati
 ./run_validation.sh nano
 ```
 
-## Converting 
-
 To export your own fine-tuned RF-DETR model to ONNX, use the `export_roboflow.py` script. You'll need the `[export]` extra:
 
 ```bash
 uv sync --extra export
-```bash
-uv sync --extra export
-uv run python modules/export_roboflow.py --model-type nano
+uv run python tools/export_roboflow.py --model-type nano
 ```
 
 #### Export Parameters

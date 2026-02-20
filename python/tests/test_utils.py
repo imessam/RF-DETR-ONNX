@@ -9,7 +9,8 @@ PYTHON_DIR = os.path.join(REPO_ROOT, "python")
 if PYTHON_DIR not in sys.path:
     sys.path.insert(0, PYTHON_DIR)
 
-from modules.utils import sigmoid, box_cxcywh_to_xyxyn
+from modules.utils import sigmoid, box_cxcywh_to_xyxyn, box_cxcywh_to_xywh
+
 
 def test_sigmoid():
     x = np.array([-100.0, 0.0, 100.0])
@@ -33,3 +34,17 @@ def test_box_cxcywh_to_xyxyn():
     output = box_cxcywh_to_xyxyn(x)
     
     np.testing.assert_allclose(output, expected, atol=1e-6)
+
+def test_box_cxcywh_to_xywh():
+    # Input: cx, cy, w, h
+    x = np.array([[0.5, 0.5, 0.2, 0.4]])
+    
+    # Expected: x_left = 0.5 - 0.1 = 0.4
+    #           y_top = 0.5 - 0.2 = 0.3
+    #           w = 0.2
+    #           h = 0.4
+    expected = np.array([[0.4, 0.3, 0.2, 0.4]])
+    output = box_cxcywh_to_xywh(x)
+    
+    np.testing.assert_allclose(output, expected, atol=1e-6)
+

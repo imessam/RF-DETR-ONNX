@@ -1,18 +1,25 @@
 import numpy as np
 
 def calculate_iou(box1, box2):
-    """Calculate IoU between two boxes in [x1, y1, x2, y2] format."""
-    x1 = max(box1[0], box2[0])
-    y1 = max(box1[1], box2[1])
-    x2 = min(box1[2], box2[2])
-    y2 = min(box1[3], box2[3])
+    """Calculate IoU between two boxes in [x, y, w, h] format."""
+    x1_1, y1_1, w1, h1 = box1
+    x1_2, y1_2, w2, h2 = box2
     
-    intersection = max(0, x2 - x1) * max(0, y2 - y1)
-    area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
-    area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    x2_1, y2_1 = x1_1 + w1, y1_1 + h1
+    x2_2, y2_2 = x1_2 + w2, y1_2 + h2
+
+    x_inter1 = max(x1_1, x1_2)
+    y_inter1 = max(y1_1, y1_2)
+    x_inter2 = min(x2_1, x2_2)
+    y_inter2 = min(y2_1, y2_2)
+    
+    intersection = max(0, x_inter2 - x_inter1) * max(0, y_inter2 - y_inter1)
+    area1 = w1 * h1
+    area2 = w2 * h2
     union = area1 + area2 - intersection
     
     return intersection / union if union > 0 else 0
+
 
 def match_detections(ref_dets, test_dets, iou_threshold=0.5):
     """

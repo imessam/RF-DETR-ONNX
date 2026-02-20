@@ -13,20 +13,14 @@ constexpr float DEFAULT_CONFIDENCE_THRESHOLD = 0.5f;
 constexpr int DEFAULT_MAX_NUMBER_BOXES = 300;
 
 /**
- * @brief Structure to hold detection results
+ * @brief Structure to hold a single detection result
  */
 struct Detection {
-  std::vector<float> scores;
-  std::vector<int> labels;
-  std::vector<cv::Rect2f> boxes;
-  std::vector<cv::Mat> masks;
-
-  void clear() {
-    scores.clear();
-    labels.clear();
-    boxes.clear();
-    masks.clear();
-  }
+  float score;
+  int label;
+  cv::Rect2f normalizedBox;   // [x, y, w, h] normalized [0, 1]
+  cv::Rect2f unnormalizedBox; // [x, y, w, h] in pixels
+  cv::Mat mask;
 };
 
 /**
@@ -62,22 +56,24 @@ public:
   /**
    * @brief Run model inference and return detections
    * @param image Input image in BGR format (H, W, C)
-   * @param detection Output detection results
+   * @param detections Output detection results
    * @param timings Output timing information
    * @param confidenceThreshold Confidence threshold for filtering
    * @param maxNumberBoxes Maximum number of boxes to return
    */
-  void predict(const cv::Mat &image, Detection &detection, Timings &timings,
+  void predict(const cv::Mat &image, std::vector<Detection> &detections,
+               Timings &timings,
                float confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD,
                int maxNumberBoxes = DEFAULT_MAX_NUMBER_BOXES);
 
   /**
    * @brief Draw bounding boxes, masks and labels on image and save
    * @param image Original image in BGR format
-   * @param detection Detection results to visualize
+   * @param detections Detection results to visualize
    * @param savePath Path to save the output image
    */
-  void saveDetections(const cv::Mat &image, const Detection &detection,
+  void saveDetections(const cv::Mat &image,
+                      const std::vector<Detection> &detections,
                       const std::string &savePath) const;
 
 private:
@@ -93,12 +89,12 @@ private:
    * @param outputs Raw model outputs
    * @param originHeight Original image height
    * @param originWidth Original image width
-   * @param detection Output detection results
+   * @param detections Output detection results
    * @param confidenceThreshold Confidence threshold for filtering
    * @param maxNumberBoxes Maximum number of boxes to return
    */
   void postProcess(const std::vector<cv::Mat> &outputs, int originHeight,
-                   int originWidth, Detection &detection,
+                   int originWidth, std::vector<Detection> &detections,
                    float confidenceThreshold, int maxNumberBoxes);
 
   std::unique_ptr<OnnxRuntimeSession> ortSession_;

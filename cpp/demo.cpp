@@ -90,9 +90,9 @@ int main(int argc, char **argv) {
 
     // Run inference
     std::cout << "Running inference..." << std::endl;
-    rfdetr::Detection detection;
+    std::vector<rfdetr::Detection> detections;
     rfdetr::Timings timings;
-    model.predict(image, detection, timings, args.threshold, args.maxBoxes);
+    model.predict(image, detections, timings, args.threshold, args.maxBoxes);
 
     // Calculate processing time
     float processingTime =
@@ -113,11 +113,12 @@ int main(int argc, char **argv) {
     std::cout << "Total FPS:                " << (1000.0f / timings.total)
               << "\n";
     std::cout << "---------------------------------\n";
-    std::cout << "Detections found: " << detection.boxes.size() << "\n";
+    std::cout << "Detections found: " << detections.size() << "\n";
 
     // Draw and save detections
     std::cout << "Saving detections to: " << args.outputPath << std::endl;
-    model.saveDetections(image, detection, args.outputPath);
+    model.saveDetections(image, detections, args.outputPath);
+
     std::cout << "Done!\n";
 
     return 0;

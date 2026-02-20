@@ -69,9 +69,9 @@ void RFDETRModel::preprocess(const cv::Mat &image, cv::Mat &output) {
 
 void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
                               int originHeight, int originWidth,
-                              Detection &detection, float confidenceThreshold,
-                              int maxNumberBoxes) {
-  detection.clear();
+                              std::vector<Detection> &detections,
+                              float confidenceThreshold, int maxNumberBoxes) {
+  detections.clear();
 
   // outputs[0]: boxes (1, N, 4)
   // outputs[1]: scores/logits (1, N, num_classes)
@@ -130,54 +130,51 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
       break; // All remaining scores are lower, no need to continue
     }
 
-    detection.scores.push_back(score);
-    detection.labels.push_back(labels[idx]);
+    Detection det;
+    det.score = score;
+    det.label = labels[idx];
 
-    // Convert this single box from cxcywh to xyxy and scale to image size
+    // Convert from cxcywh to xywh
     const float *boxRow = boxes.ptr<float>(idx);
     float cx = boxRow[0];
     float cy = boxRow[1];
-    float hw = boxRow[2] * 0.5f;
-    float hh = boxRow[3] * 0.5f;
+    float w = boxRow[2];
+    float h = boxRow[3];
 
-    float xmin = (cx - hw) * originWidth;
-    float ymin = (cy - hh) * originHeight;
-    float xmax = (cx + hw) * originWidth;
-    float ymax = (cy + hh) * originHeight;
+    float x_left = cx - w * 0.5f;
+    float y_top = cy - h * 0.5f;
 
-    detection.boxes.emplace_back(xmin, ymin, xmax - xmin, ymax - ymin);
-  }
+    det.normalizedBox = cv::Rect2f(x_left, y_top, w, h);
+    det.unnormalizedBox = cv::Rect2f(x_left * originWidth, y_top * originHeight,
+                                     w * originWidth, h * originHeight);
 
-  // Process masks if available
-  if (!masks.empty() && !detection.boxes.empty()) {
-    masks = masks.reshape(1, {masks.size[1], masks.size[2], masks.size[3]});
+    // Process mask if available
+    if (!masks.empty()) {
+      int maskHeight = masks.size[2];
+      int maskWidth = masks.size[3];
 
-    int maskHeight = masks.size[1];
-    int maskWidth = masks.size[2];
-
-    for (size_t i = 0; i < detection.boxes.size(); ++i) {
-      int originalIdx = indices[i];
-
-      if (originalIdx < masks.size[0]) {
-        cv::Mat mask(maskHeight, maskWidth, CV_32F,
-                     masks.ptr<float>(originalIdx));
+      if (idx < masks.size[1]) {
+        // Wrap mask (1, maskH, maskW)
+        int maskDims[] = {maskHeight, maskWidth};
+        cv::Mat maskRaw(2, maskDims, CV_32F,
+                        const_cast<float *>(masks.ptr<float>(0, idx)));
 
         cv::Mat resizedMask;
-        cv::resize(mask, resizedMask, cv::Size(originWidth, originHeight));
+        cv::resize(maskRaw, resizedMask, cv::Size(originWidth, originHeight));
 
         cv::Mat binaryMask;
         cv::threshold(resizedMask, binaryMask, 0.0, 255.0, cv::THRESH_BINARY);
-        binaryMask.convertTo(binaryMask, CV_8U);
-
-        detection.masks.push_back(binaryMask);
+        binaryMask.convertTo(det.mask, CV_8U);
       }
     }
+
+    detections.push_back(det);
   }
 }
 
-void RFDETRModel::predict(const cv::Mat &image, Detection &detection,
-                          Timings &timings, float confidenceThreshold,
-                          int maxNumberBoxes) {
+void RFDETRModel::predict(const cv::Mat &image,
+                          std::vector<Detection> &detections, Timings &timings,
+                          float confidenceThreshold, int maxNumberBoxes) {
   auto startTotal = std::chrono::high_resolution_clock::now();
 
   int originHeight = image.rows;
@@ -201,7 +198,7 @@ void RFDETRModel::predict(const cv::Mat &image, Detection &detection,
 
   // Post-process
   auto startPost = std::chrono::high_resolution_clock::now();
-  postProcess(outputs, originHeight, originWidth, detection,
+  postProcess(outputs, originHeight, originWidth, detections,
               confidenceThreshold, maxNumberBoxes);
   auto endPost = std::chrono::high_resolution_clock::now();
   timings.postprocess =
@@ -213,7 +210,7 @@ void RFDETRModel::predict(const cv::Mat &image, Detection &detection,
 }
 
 void RFDETRModel::saveDetections(const cv::Mat &image,
-                                 const Detection &detection,
+                                 const std::vector<Detection> &detections,
                                  const std::string &savePath) const {
   // Create a copy to draw on
   cv::Mat result = image.clone();
@@ -224,22 +221,31 @@ void RFDETRModel::saveDetections(const cv::Mat &image,
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> dis(0, 255);
 
-  for (int label : detection.labels) {
-    if (labelColors.find(label) == labelColors.end()) {
-      labelColors[label] = cv::Scalar(dis(gen), dis(gen), dis(gen));
+  for (const auto &det : detections) {
+    if (labelColors.find(det.label) == labelColors.end()) {
+      labelColors[det.label] = cv::Scalar(dis(gen), dis(gen), dis(gen));
     }
   }
 
   // Draw masks with transparency if available
-  if (!detection.masks.empty()) {
+  bool hasMasks = false;
+  for (const auto &det : detections) {
+    if (!det.mask.empty()) {
+      hasMasks = true;
+      break;
+    }
+  }
+
+  if (hasMasks) {
     cv::Mat overlay = result.clone();
 
-    for (size_t i = 0; i < detection.masks.size(); ++i) {
-      int label = detection.labels[i];
-      cv::Scalar color = labelColors[label];
+    for (const auto &det : detections) {
+      if (det.mask.empty())
+        continue;
 
-      cv::Mat colorMask(detection.masks[i].size(), CV_8UC3);
-      colorMask.setTo(color, detection.masks[i]);
+      cv::Scalar color = labelColors[det.label];
+      cv::Mat colorMask(det.mask.size(), CV_8UC3);
+      colorMask.setTo(color, det.mask);
 
       cv::addWeighted(overlay, 1.0, colorMask, 0.4, 0.0, overlay);
     }
@@ -248,14 +254,13 @@ void RFDETRModel::saveDetections(const cv::Mat &image,
   }
 
   // Draw bounding boxes and labels
-  for (size_t i = 0; i < detection.boxes.size(); ++i) {
-    const auto &box = detection.boxes[i];
-    int label = detection.labels[i];
-    cv::Scalar color = labelColors[label];
+  for (const auto &det : detections) {
+    const auto &box = det.unnormalizedBox;
+    cv::Scalar color = labelColors[det.label];
 
     cv::rectangle(result, box, color, 4);
 
-    std::string text = std::to_string(label);
+    std::string text = std::to_string(det.label);
     int baseline = 0;
     cv::Size textSize =
         cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseline);

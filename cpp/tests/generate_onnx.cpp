@@ -8,8 +8,10 @@
 
 namespace fs = std::filesystem;
 
-void saveDetectionsJson(const std::string &outputPath, const std::string &assetName,
-                        const rfdetr::Detection &det, float latencyMs) {
+void saveDetectionsJson(const std::string &outputPath,
+                        const std::string &assetName,
+                        const std::vector<rfdetr::Detection> &detections,
+                        float latencyMs) {
   std::ofstream ofs(outputPath);
   ofs << "{\n"
       << "  \"asset\": \"" << assetName << "\",\n"
@@ -17,14 +19,15 @@ void saveDetectionsJson(const std::string &outputPath, const std::string &assetN
       << "  \"latency_ms\": " << latencyMs << ",\n"
       << "  \"detections\": [\n";
 
-  for (size_t i = 0; i < det.boxes.size(); ++i) {
+  for (size_t i = 0; i < detections.size(); ++i) {
+    const auto &det = detections[i];
     ofs << "    {\n"
-        << "      \"bbox\": [" << det.boxes[i].x << ", " << det.boxes[i].y << ", "
-        << det.boxes[i].x + det.boxes[i].width << ", "
-        << det.boxes[i].y + det.boxes[i].height << "],\n"
-        << "      \"class_id\": " << det.labels[i] << ",\n"
-        << "      \"score\": " << det.scores[i] << "\n"
-        << "    }" << (i == det.boxes.size() - 1 ? "" : ",") << "\n";
+        << "      \"bbox\": [" << det.normalizedBox.x << ", "
+        << det.normalizedBox.y << ", " << det.normalizedBox.width << ", "
+        << det.normalizedBox.height << "],\n"
+        << "      \"class_id\": " << det.label << ",\n"
+        << "      \"score\": " << det.score << "\n"
+        << "    }" << (i == detections.size() - 1 ? "" : ",") << "\n";
   }
 
   ofs << "  ]\n"
@@ -34,8 +37,7 @@ void saveDetectionsJson(const std::string &outputPath, const std::string &assetN
 int main(int argc, char **argv) {
   if (argc < 5) {
     std::cerr << "Usage: " << argv[0]
-              << " <model_path> <input_dir> <device> <output_dir>"
-              << std::endl;
+              << " <model_path> <input_dir> <device> <output_dir>" << std::endl;
     return 1;
   }
 
@@ -44,7 +46,8 @@ int main(int argc, char **argv) {
   std::string device = argv[3];
   std::string outputDir = argv[4];
 
-  std::cout << "Initializing C++ ONNX Model on " << device << "..." << std::endl;
+  std::cout << "Initializing C++ ONNX Model on " << device << "..."
+            << std::endl;
   rfdetr::RFDETRModel model(modelPath, device);
 
   if (!fs::exists(outputDir)) {
@@ -57,21 +60,23 @@ int main(int argc, char **argv) {
     if (ext == ".jpg" || ext == ".jpeg" || ext == ".png") {
       std::string assetName = entry.path().filename().string();
       cv::Mat img = cv::imread(entry.path().string());
-      if (img.empty()) continue;
+      if (img.empty())
+        continue;
 
-      rfdetr::Detection det;
+      std::vector<rfdetr::Detection> detections;
       rfdetr::Timings timings;
-      
+
       auto start = std::chrono::high_resolution_clock::now();
-      model.predict(img, det, timings);
+      model.predict(img, detections, timings);
       auto end = std::chrono::high_resolution_clock::now();
-      float latency = std::chrono::duration<float, std::milli>(end - start).count();
+      float latency =
+          std::chrono::duration<float, std::milli>(end - start).count();
 
       std::string baseName = entry.path().stem().string();
       std::string jsonPath = outputDir + "/" + baseName + ".json";
-      
-      saveDetectionsJson(jsonPath, assetName, det, latency);
-      std::cout << "  - " << assetName << ": " << det.boxes.size() 
+
+      saveDetectionsJson(jsonPath, assetName, detections, latency);
+      std::cout << "  - " << assetName << ": " << detections.size()
                 << " detections (" << latency << " ms)" << std::endl;
     }
   }

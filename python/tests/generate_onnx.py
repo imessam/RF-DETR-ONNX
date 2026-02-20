@@ -27,22 +27,21 @@ def parse_args():
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     return parser.parse_args()
 
-def save_detections_json(output_path, asset_name, boxes, labels, scores, latency_ms):
-    detections = []
-    for i in range(len(boxes)):
-        class_id = int(labels[i])
-        detections.append({
-            "bbox": boxes[i].tolist(),
-            "class_id": class_id,
-            "class_name": COCO_CLASSES[class_id],
-            "score": float(scores[i])
+def save_detections_json(output_path, asset_name, detections, latency_ms):
+    results = []
+    for det in detections:
+        results.append({
+            "bbox": det.normalized_box.tolist(), # [x, y, w, h] normalized
+            "class_id": det.label,
+            "class_name": COCO_CLASSES[det.label],
+            "score": float(det.score)
         })
     
     data = {
         "asset": asset_name,
         "implementation": "Python ONNX",
         "latency_ms": latency_ms,
-        "detections": detections
+        "detections": results
     }
     
     with open(output_path, "w") as f:
@@ -68,15 +67,16 @@ def main():
             continue
             
         start_time = time.perf_counter()
-        scores, labels, boxes, masks, timings = model.predict(image_bgr, confidence_threshold=args.threshold)
+        detections, timings = model.predict(image_bgr, confidence_threshold=args.threshold)
         latency = (time.perf_counter() - start_time) * 1000
         
         base_name = os.path.splitext(asset_name)[0]
         output_json = os.path.join(args.output, f"{base_name}.json")
-        save_detections_json(output_json, asset_name, boxes, labels, scores, latency)
+        save_detections_json(output_json, asset_name, detections, latency)
         
         if args.verbose:
-            print(f"  - {asset_name}: {len(boxes)} detections ({latency:.2f} ms)")
+            print(f"  - {asset_name}: {len(detections)} detections ({latency:.2f} ms)")
 
 if __name__ == "__main__":
     main()
+```

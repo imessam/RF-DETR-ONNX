@@ -29,12 +29,19 @@ def parse_args():
     parser.add_argument("--device", type=str, default="gpu", choices=["cpu", "gpu"], help="Device to use")
     return parser.parse_args()
 
-def save_detections_json(output_path, asset_name, boxes, labels, scores, latency_ms):
+def save_detections_json(output_path, asset_name, boxes, labels, scores, latency_ms, img_w, img_h):
     detections = []
     for i in range(len(boxes)):
         class_id = int(labels[i])
+        # Convert from unnormalized xyxy to normalized xywh
+        x1, y1, x2, y2 = boxes[i]
+        x_left = x1 / img_w
+        y_top = y1 / img_h
+        width = (x2 - x1) / img_w
+        height = (y2 - y1) / img_h
+        
         detections.append({
-            "bbox": boxes[i].tolist(),
+            "bbox": [float(x_left), float(y_top), float(width), float(height)],
             "class_id": class_id,
             "class_name": COCO_CLASSES[class_id],
             "score": float(scores[i])
@@ -69,7 +76,7 @@ def main():
     if not assets:
         print(f"No images found in {args.assets_dir}")
         return
-
+ 
     print(f"Generating reference results for {len(assets)} assets...")
     for asset_name in assets:
         asset_path = os.path.join(args.assets_dir, asset_name)
@@ -77,6 +84,7 @@ def main():
         if image_bgr is None:
             continue
             
+        img_h, img_w = image_bgr.shape[:2]
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         image_pil = Image.fromarray(image_rgb)
         
@@ -88,7 +96,8 @@ def main():
         
         base_name = os.path.splitext(asset_name)[0]
         output_json = os.path.join(args.output_dir, f"{base_name}.json")
-        save_detections_json(output_json, asset_name, res.xyxy, res.class_id, res.confidence, latency)
+        save_detections_json(output_json, asset_name, res.xyxy, res.class_id, res.confidence, latency, img_w, img_h)
+
         print(f"  - {asset_name}: {len(res.xyxy)} detections ({latency:.2f} ms)")
 
 if __name__ == "__main__":

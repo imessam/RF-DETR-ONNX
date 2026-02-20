@@ -3,8 +3,10 @@ set -e
 
 # Default Configuration
 VERBOSE=0
-MODEL_URL=""
+MODEL_PTH_URL="https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.pth.zip"
+MODEL_ONNX_URL="https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.onnx.zip"
 DEVICE="gpu"
+
 
 usage() {
     echo "Usage: ./run_tests.sh [OPTIONS]"
@@ -12,18 +14,28 @@ usage() {
     echo "Options:"
     echo "  -d <string> Device to use (gpu/cpu, default: gpu)"
     echo "  -v          Enable verbose logging"
-    echo "  -u <url>    URL to download ONNX/PTH zip if none found"
+    echo "  -p <url>    URL for PTH zip (default: $MODEL_PTH_URL)"
+    echo "  -n <url>    URL for ONNX zip (default: $MODEL_ONNX_URL)"
+    echo "  -o <path>   ONNX Runtime root directory (optional)"
+
+
     echo "  -h          Show this help message"
+
     echo ""
     exit 0
 }
 
 # Parse CLI arguments
-while getopts "d:u:vh" opt; do
+while getopts "d:p:n:o:vh" opt; do
     case "$opt" in
         d) DEVICE=$OPTARG ;;
-        u) MODEL_URL=$OPTARG ;;
+        p) MODEL_PTH_URL=$OPTARG ;;
+        n) MODEL_ONNX_URL=$OPTARG ;;
+        o) ONNX_ROOT=$OPTARG ;;
+
+
         v) VERBOSE=1 ;;
+
         h) usage ;;
         *) usage ;;
     esac
@@ -39,6 +51,12 @@ VERBOSE_PY_ARG=""
 if [ "$VERBOSE" -eq 1 ]; then
     VERBOSE_PY_ARG="--verbose"
 fi
+
+CMAKE_ONNX_ARG=""
+if [ -n "$ONNX_ROOT" ]; then
+    CMAKE_ONNX_ARG="-DONNXRUNTIME_ROOT_DIR=$ONNX_ROOT"
+fi
+
 
 # Clean old results
 echo ">>> Cleaning old results..."
@@ -66,14 +84,15 @@ fi
 echo ">>> Building C++ Library..."
 cd "$REPO_ROOT/cpp"
 mkdir -p build && cd build
-cmake ..
+cmake $CMAKE_ONNX_ARG -DENABLE_TESTS=ON ..
 make -j$(nproc)
 
 echo ">>> Building C++ Tests (Standalone Tool)..."
 cd "$REPO_ROOT/cpp/tests"
 mkdir -p build && cd build
-cmake ..
+cmake $CMAKE_ONNX_ARG ..
 make -j$(nproc)
+
 
 # 2. Manage Models
 echo ">>> Managing Models..."
@@ -86,27 +105,39 @@ mkdir -p "$TORCH_DIR" "$ONNX_DIR"
 TORCH_MODEL=$(ls "$TORCH_DIR"/*.pth 2>/dev/null | head -n 1)
 ONNX_MODEL=$(ls "$ONNX_DIR"/*.onnx 2>/dev/null | head -n 1)
 
-if [ -z "$TORCH_MODEL" ] || [ -z "$ONNX_MODEL" ]; then
-    if [ -n "$MODEL_URL" ]; then
-        echo ">>> Downloading models from $MODEL_URL..."
-        TEMP_DIR=$(mktemp -d)
-        ZIP_PATH="$TEMP_DIR/models.zip"
-        curl -L -o "$ZIP_PATH" "$MODEL_URL"
-        
-        echo ">>> Extracting models..."
+# PTH Model Download
+if [ -z "$TORCH_MODEL" ]; then
+    echo ">>> Downloading PTH model from $MODEL_PTH_URL..."
+    TEMP_DIR=$(mktemp -d)
+    ZIP_PATH="$TEMP_DIR/pth_models.zip"
+    if curl -L -f -o "$ZIP_PATH" "$MODEL_PTH_URL"; then
+        echo ">>> Extracting..."
         unzip -q "$ZIP_PATH" -d "$TEMP_DIR"
-        
-        # Move files to respective directories
         find "$TEMP_DIR" -name "*.pth" -exec mv {} "$TORCH_DIR/" \;
-        find "$TEMP_DIR" -name "*.onnx" -exec mv {} "$ONNX_DIR/" \;
-        
-        # Clean up
-        rm -rf "$TEMP_DIR"
-        
         TORCH_MODEL=$(ls "$TORCH_DIR"/*.pth 2>/dev/null | head -n 1)
-        ONNX_MODEL=$(ls "$ONNX_DIR"/*.onnx 2>/dev/null | head -n 1)
+    else
+        echo "⚠️ Warning: Failed to download PTH model from $MODEL_PTH_URL"
     fi
+    rm -rf "$TEMP_DIR"
 fi
+
+# ONNX Model Download
+if [ -z "$ONNX_MODEL" ]; then
+    echo ">>> Downloading ONNX model from $MODEL_ONNX_URL..."
+    TEMP_DIR=$(mktemp -d)
+    ZIP_PATH="$TEMP_DIR/onnx_models.zip"
+    if curl -L -f -o "$ZIP_PATH" "$MODEL_ONNX_URL"; then
+        echo ">>> Extracting..."
+        unzip -q "$ZIP_PATH" -d "$TEMP_DIR"
+        find "$TEMP_DIR" -name "*.onnx" -exec mv {} "$ONNX_DIR/" \;
+        ONNX_MODEL=$(ls "$ONNX_DIR"/*.onnx 2>/dev/null | head -n 1)
+    else
+        echo "⚠️ Warning: Failed to download ONNX model from $MODEL_ONNX_URL"
+    fi
+    rm -rf "$TEMP_DIR"
+fi
+
+
 
 if [ -z "$TORCH_MODEL" ] || [ -z "$ONNX_MODEL" ]; then
     echo "❌ Error: Required models (.pth and .onnx) not found."

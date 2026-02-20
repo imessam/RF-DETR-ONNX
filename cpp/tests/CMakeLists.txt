@@ -26,3 +26,35 @@ target_link_libraries(
   ${OpenCV_LIBS}
   ${ONNXRUNTIME_LIBRARY}
 )
+
+add_executable(
+  test_utils
+  ${CMAKE_CURRENT_LIST_DIR}/test_utils.cpp
+)
+
+target_include_directories(test_utils PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
+
+target_link_libraries(
+  test_utils
+  rfdetr_onnx
+  ${OpenCV_LIBS}
+  gtest
+  gtest_main
+)
+
+add_executable(
+  test_model
+  ${CMAKE_CURRENT_LIST_DIR}/test_model.cpp
+)
+
+target_include_directories(test_model PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
+
+target_link_libraries(
+  test_model
+  rfdetr_onnx
+  ${OpenCV_LIBS}
+  gtest
+  gtest_main
+)
+
+

@@ -16,9 +16,19 @@ jobs:
       with:
         python-version: '3.13'
 
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libopencv-dev
+
     - name: Install uv
       uses: astral-sh/setup-uv@v5
 
+    - name: Download ONNX Runtime
+      run: |
+        bash tools/download_onnx.sh -v 1.21.0 -o libs/onnx
+
     - name: Run accuracy tests
       run: |
-        bash tests/run_tests.sh -d cpu
+        bash tests/run_tests.sh -d cpu -o libs/onnx/onnxruntime-linux-x64-1.21.0
+

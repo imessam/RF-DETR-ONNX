@@ -38,22 +38,8 @@ endforeach()
 ## Tests setup
 if(${ENABLE_TESTS})
 
-  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/test)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tests)
 
-#   include(${CMAKE_CURRENT_LIST_DIR}/../test-libs/another_module/cpp/src/CMakeLists.txt)
-  # include(${CMAKE_CURRENT_LIST_DIR}/../test-libs/another_module/libs/CMakeLists.txt)
-
-#   set(test_libs AnotherModuleLib ${libs_targets_another_module})
-
-  set(TESTS rfdetr_onnx_test)
-
-
-
-  foreach(_test
-  ${TESTS})
-    target_link_libraries(${_test}
-        ${LIBS}
-      )
-  endforeach()
-
+  # Tests are now handled in the subdirectories
 endif()
+

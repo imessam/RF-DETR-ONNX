@@ -32,17 +32,10 @@ if (NOT TARGET rfdetr_onnx)
 
   set(DEPS 
     ${OpenCV_LIBS}
+    ${ONNXRUNTIME_LIBRARY}
   )
-  
-  # Add ONNX Runtime library
-  if(ONNXRUNTIME_LIBRARY)
-    list(APPEND DEPS ${ONNXRUNTIME_LIBRARY})
-  endif()
-  
-  # Add ONNX Runtime include directory to library (PUBLIC so it propagates to executables)
-  if(ONNXRUNTIME_INCLUDE_DIR)
-    target_include_directories(rfdetr_onnx PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
-  endif()
+
+  target_include_directories(rfdetr_onnx PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
 
   target_link_libraries(rfdetr_onnx PUBLIC ${DEPS})
 

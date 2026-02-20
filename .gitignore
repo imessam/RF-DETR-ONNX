@@ -9,6 +9,7 @@
 *.pyc
 *.lock
 *.ipynb
+*.tgz
 
 *.egg-info
 .vscode/

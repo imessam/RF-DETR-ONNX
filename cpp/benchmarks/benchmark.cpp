@@ -115,9 +115,9 @@ int main(int argc, char **argv) {
   std::cout << "Running " << warmupIterations << " warmup iterations..."
             << std::endl;
   for (int i = 0; i < warmupIterations; ++i) {
-    rfdetr::Detection det;
+    std::vector<rfdetr::Detection> dets;
     rfdetr::Timings timings;
-    model.predict(images[i % images.size()], det, timings);
+    model.predict(images[i % images.size()], dets, timings);
   }
 
   std::cout << "Running " << numIterations << " benchmark iterations..."
@@ -129,9 +129,9 @@ int main(int argc, char **argv) {
       std::this_thread::sleep_for(
           std::chrono::milliseconds(static_cast<int>(sleepPerImage * 1000)));
     }
-    rfdetr::Detection det;
+    std::vector<rfdetr::Detection> dets;
     rfdetr::Timings timings;
-    model.predict(images[i % images.size()], det, timings);
+    model.predict(images[i % images.size()], dets, timings);
 
     float total = timings.preprocess + timings.ortRun + timings.postprocess;
     pre_times.push_back(timings.preprocess);

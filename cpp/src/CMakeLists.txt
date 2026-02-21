@@ -21,7 +21,10 @@ if (NOT TARGET rfdetr_onnx)
 
   add_library(rfdetr_onnx STATIC ${RFDETRLib_SOURCES})
 
-  target_include_directories(rfdetr_onnx PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
+  target_include_directories(rfdetr_onnx PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../include>
+    $<INSTALL_INTERFACE:include>
+  )
 
   foreach(_lib_include_dir
   ${libs_include_rfdetr_onnx})
@@ -38,6 +41,18 @@ if (NOT TARGET rfdetr_onnx)
   target_include_directories(rfdetr_onnx PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
 
   target_link_libraries(rfdetr_onnx PUBLIC ${DEPS})
+
+  install(TARGETS rfdetr_onnx
+    EXPORT rfdetr_onnxTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+  )
+
+  install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../include/
+    DESTINATION include
+  )
 
 
 endif()

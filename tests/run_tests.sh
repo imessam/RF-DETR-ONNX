@@ -3,8 +3,8 @@ set -e
 
 # Default Configuration
 VERBOSE=0
-MODEL_PTH_URL="https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.pth.zip"
-MODEL_ONNX_URL="https://huggingface.co/PierreMarieCurie/rf-detr-onnx/resolve/main/rf-detr-nano.onnx.zip"
+MODEL_PTH_URL="https://github.com/imessam/RF-DETR-ONNX/releases/download/models/torch.zip"
+MODEL_ONNX_URL="https://github.com/imessam/RF-DETR-ONNX/releases/download/models/onnx.zip"
 DEVICE="gpu"
 
 
@@ -94,27 +94,27 @@ cmake $CMAKE_ONNX_ARG ..
 make -j$(nproc)
 
 
-# 2. Manage Models
+# 2. Manage Models (prefer root models/, else download)
 echo ">>> Managing Models..."
-TORCH_DIR="${TEST_DIR}/models/torch"
-ONNX_DIR="${TEST_DIR}/models/onnx"
+MODELS_DIR="$REPO_ROOT/models"
+TORCH_DIR="$MODELS_DIR/torch"
+ONNX_DIR="$MODELS_DIR/onnx"
 
 mkdir -p "$TORCH_DIR" "$ONNX_DIR"
 
-# Check if models exist
-TORCH_MODEL=$(ls "$TORCH_DIR"/*.pth 2>/dev/null | head -n 1)
-ONNX_MODEL=$(ls "$ONNX_DIR"/*.onnx 2>/dev/null | head -n 1)
+# Check if models exist (recursive under root models)
+TORCH_MODEL=$(find "$MODELS_DIR" -type f -name "*.pth" 2>/dev/null | head -n 1)
+ONNX_MODEL=$(find "$MODELS_DIR" -type f -name "*.onnx" 2>/dev/null | head -n 1)
 
 # PTH Model Download
 if [ -z "$TORCH_MODEL" ]; then
-    echo ">>> Downloading PTH model from $MODEL_PTH_URL..."
+    echo ">>> Downloading PTH models from $MODEL_PTH_URL..."
     TEMP_DIR=$(mktemp -d)
     ZIP_PATH="$TEMP_DIR/pth_models.zip"
     if curl -L -f -o "$ZIP_PATH" "$MODEL_PTH_URL"; then
         echo ">>> Extracting..."
-        unzip -q "$ZIP_PATH" -d "$TEMP_DIR"
-        find "$TEMP_DIR" -name "*.pth" -exec mv {} "$TORCH_DIR/" \;
-        TORCH_MODEL=$(ls "$TORCH_DIR"/*.pth 2>/dev/null | head -n 1)
+        unzip -q "$ZIP_PATH" -d "$TORCH_DIR"
+        TORCH_MODEL=$(find "$MODELS_DIR" -type f -name "*.pth" 2>/dev/null | head -n 1)
     else
         echo "⚠️ Warning: Failed to download PTH model from $MODEL_PTH_URL"
     fi
@@ -123,14 +123,13 @@ fi
 
 # ONNX Model Download
 if [ -z "$ONNX_MODEL" ]; then
-    echo ">>> Downloading ONNX model from $MODEL_ONNX_URL..."
+    echo ">>> Downloading ONNX models from $MODEL_ONNX_URL..."
     TEMP_DIR=$(mktemp -d)
     ZIP_PATH="$TEMP_DIR/onnx_models.zip"
     if curl -L -f -o "$ZIP_PATH" "$MODEL_ONNX_URL"; then
         echo ">>> Extracting..."
-        unzip -q "$ZIP_PATH" -d "$TEMP_DIR"
-        find "$TEMP_DIR" -name "*.onnx" -exec mv {} "$ONNX_DIR/" \;
-        ONNX_MODEL=$(ls "$ONNX_DIR"/*.onnx 2>/dev/null | head -n 1)
+        unzip -q "$ZIP_PATH" -d "$ONNX_DIR"
+        ONNX_MODEL=$(find "$MODELS_DIR" -type f -name "*.onnx" 2>/dev/null | head -n 1)
     else
         echo "⚠️ Warning: Failed to download ONNX model from $MODEL_ONNX_URL"
     fi

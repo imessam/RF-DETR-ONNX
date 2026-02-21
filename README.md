@@ -65,6 +65,28 @@ First, install [uv](https://docs.astral.sh/uv/) if you haven't already:
   uv sync --extra export --extra test
   ```
 
+### Using pip
+
+From the repo root:
+
+```bash
+pip install .
+```
+
+Optional extras:
+
+```bash
+pip install ".[export]"
+pip install ".[test]"
+```
+
+CPU-only ONNX Runtime (override GPU dependency):
+
+```bash
+pip uninstall -y onnxruntime-gpu
+pip install onnxruntime
+```
+
 ## Validation & Testing
 
 We provide a fully automated validation pipeline that ensures the exported ONNX model matches the original PyTorch model's accuracy.
@@ -134,6 +156,40 @@ cmake ..
 make -j$(nproc)
 ```
 
+### CMake Options
+
+```bash
+cmake .. \
+  -DENABLE_EXAMPLES=ON \
+  -DENABLE_BENCHMARKS=ON \
+  -DENABLE_TESTS=OFF
+```
+
+### Using The C++ Library
+
+Build and install the static library and headers:
+
+```bash
+cd cpp
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+cmake --install .
+```
+
+This installs:
+- `librfdetr_onnx.a` into your CMake install prefix `lib/`
+- Headers into `include/`
+
+Consume it via CMake:
+
+```cmake
+find_package(rfdetr_onnx REQUIRED)
+
+add_executable(my_app main.cpp)
+target_link_libraries(my_app PRIVATE rfdetr_onnx::rfdetr_onnx)
+```
+
 ### Optimization: Zero-Copy Inference
 
 The C++ implementation is optimized for high-throughput inference by using **zero-copy output handling**. Instead of copying inference results from ONNX Runtime memory, the `OnnxRuntimeSession` wraps the raw output tensors directly into `cv::Mat` objects. This significantly reduces CPU overhead, especially when working with high-resolution segmentation masks.
@@ -141,9 +197,16 @@ The C++ implementation is optimized for high-throughput inference by using **zer
 ### Usage
 
 ```bash
-./rfdetr_onnx_demo \
+./rfdetr_image_inference \
     --model ../models/rf-detr-nano/rf-detr-nano.sim.onnx \
     --image ../assets/drone.jpg \
+    --device gpu
+```
+
+```bash
+./rfdetr_video_inference \
+    --model ../models/rf-detr-nano/rf-detr-nano.sim.onnx \
+    --video ../assets/sample.mp4 \
     --device gpu
 ```
 
@@ -157,7 +220,7 @@ Performance results and automated benchmarking tools are available in the [bench
 
 ### Running Benchmarks
 
-1. **Prepare Models**: Ensure your `.onnx` models are in `models/onnx/`.
+1. **Prepare Models**: Ensure your `.onnx` models are in `models/` (any subfolder is OK).
 2. **Execute Suite**:
    ```bash
    cd benchmarks
@@ -170,7 +233,7 @@ Performance results and automated benchmarking tools are available in the [bench
 | `-n <int>` | `10` | Number of benchmark iterations. |
 | `-c <float>`| `2.0`| Cooldown period (seconds) between runs. |
 | `-v` | `Off` | Enable verbose per-iteration logging. |
-| `-u <url>` | `None`| URL to download a model if none are found. |
+| `-u <url>` | `https://github.com/imessam/RF-DETR-ONNX/releases/download/models/onnx.zip` | URL to download ONNX models if none are found. |
 
 The script will build the C++ components, run inference across all discovered models, and generate a detailed report in `benchmarks/results/results.md`.
 

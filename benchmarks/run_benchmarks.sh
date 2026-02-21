@@ -6,7 +6,7 @@ ITERATIONS=10
 COOLDOWN_SECONDS=2
 SLEEP_PER_IMAGE=0.1
 VERBOSE=0
-MODEL_URL=""
+MODEL_ZIP_URL="https://github.com/imessam/RF-DETR-ONNX/releases/download/models/onnx.zip"
 
 usage() {
     echo "Usage: ./run_benchmarks.sh [OPTIONS]"
@@ -16,7 +16,7 @@ usage() {
     echo "  -c <float>  Cooldown seconds between benchmarks (default: 2)"
     echo "  -s <float>  Sleep per image iteration (default: 0.1)"
     echo "  -v          Enable verbose per-iteration logging"
-    echo "  -u <url>    URL to download ONNX model if none found"
+    echo "  -u <url>    URL to download ONNX zip if none found (default: $MODEL_ZIP_URL)"
     echo "  -h          Show this help message"
     echo ""
     echo "Example:"
@@ -30,14 +30,14 @@ while getopts "n:c:s:u:vh" opt; do
         n) ITERATIONS=$OPTARG ;;
         c) COOLDOWN_SECONDS=$OPTARG ;;
         s) SLEEP_PER_IMAGE=$OPTARG ;;
-        u) MODEL_URL=$OPTARG ;;
+        u) MODEL_ZIP_URL=$OPTARG ;;
         v) VERBOSE=1 ;;
         h) usage ;;
         *) usage ;;
     esac
 done
 
-MODELS_DIR="models/onnx"
+MODELS_DIR="models"
 IMAGES_DIR="benchmarks/assets/images"
 
 # Paths
@@ -64,31 +64,23 @@ uv sync
 
 echo ">>> Starting Benchmarks with $ITERATIONS iterations..."
 
-# 0. Download Model (if MODELS_DIR is empty and MODEL_URL is set)
-# Check if there are any .onnx files in models/onnx
-if [ ! -d "$REPO_ROOT/$MODELS_DIR" ] || [ -z "$(ls -A "$REPO_ROOT/$MODELS_DIR"/*.onnx 2>/dev/null)" ]; then
-    if [ -n "$MODEL_URL" ]; then
-        # Extract filename from URL or use a default
-        MODEL_NAME_FROM_URL="${MODEL_URL##*/}"
-        if [[ ! "$MODEL_NAME_FROM_URL" == *.onnx ]]; then
-            MODEL_NAME_FROM_URL="model.onnx"
-        fi
-        DOWNLOAD_PATH="$MODELS_DIR/$MODEL_NAME_FROM_URL"
-        
-        echo "0 >>> Downloading model from $MODEL_URL to $DOWNLOAD_PATH..."
-        mkdir -p "$(dirname "$REPO_ROOT/$DOWNLOAD_PATH")"
-        curl -L -o "$REPO_ROOT/$DOWNLOAD_PATH" "$MODEL_URL"
-        
-        if [ $? -ne 0 ]; then
-            echo "❌ Error: Failed to download model from $MODEL_URL"
-            exit 1
-        fi
-        echo "✓ Model downloaded successfully"
+# 0. Ensure ONNX Models Exist (prefer root models/, else download zip)
+if [ ! -d "$REPO_ROOT/$MODELS_DIR" ] || [ -z "$(find "$REPO_ROOT/$MODELS_DIR" -type f -name '*.onnx' 2>/dev/null)" ]; then
+    echo "0 >>> No ONNX models found in $MODELS_DIR. Downloading from $MODEL_ZIP_URL..."
+    TEMP_DIR=$(mktemp -d)
+    ZIP_PATH="$TEMP_DIR/onnx_models.zip"
+    if curl -L -f -o "$ZIP_PATH" "$MODEL_ZIP_URL"; then
+        echo "0 >>> Extracting ONNX models..."
+        mkdir -p "$REPO_ROOT/$MODELS_DIR"
+        unzip -q "$ZIP_PATH" -d "$REPO_ROOT/$MODELS_DIR"
     else
-        echo "⚠️ Warning: No models found in $MODELS_DIR and MODEL_URL is not set"
+        echo "❌ Error: Failed to download ONNX models from $MODEL_ZIP_URL"
+        rm -rf "$TEMP_DIR"
+        exit 1
     fi
+    rm -rf "$TEMP_DIR"
 else
-    echo "✓ Models already exist in $MODELS_DIR"
+    echo "✓ ONNX models already exist in $MODELS_DIR"
 fi
 
 # 1. Asset Check
@@ -119,15 +111,15 @@ make -j$(nproc)
 echo "3 >>> Discovering ONNX models..."
 cd "$REPO_ROOT"
 
-# Find all .onnx files in models/onnx directory
-if [ ! -d "$MODELS_DIR" ] || [ -z "$(ls -A $MODELS_DIR/*.onnx 2>/dev/null)" ]; then
+# Find all .onnx files in root models directory (recursive)
+if [ ! -d "$MODELS_DIR" ] || [ -z "$(find "$MODELS_DIR" -type f -name '*.onnx' 2>/dev/null)" ]; then
     echo "❌ Error: No ONNX models found in $MODELS_DIR"
-    echo "Please add .onnx model files to $MODELS_DIR/ or set MODEL_URL to download one"
+    echo "Please add .onnx model files to $MODELS_DIR/ or provide a valid ONNX zip URL"
     exit 1
 fi
 
-# Get list of models
-MODELS=($(ls "$MODELS_DIR"/*.onnx 2>/dev/null))
+# Get list of models (stable order)
+mapfile -t MODELS < <(find "$MODELS_DIR" -type f -name '*.onnx' | sort)
 echo "Found ${#MODELS[@]} model(s):"
 for model in "${MODELS[@]}"; do
     echo "  - $(basename "$model")"
@@ -184,4 +176,3 @@ echo ""
 echo ">>> All Benchmarks Complete!"
 echo "Results saved to: $BENCH_DIR/results/"
 echo "Report saved to: $BENCH_DIR/results/results.md"
-

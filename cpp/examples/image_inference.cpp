@@ -7,7 +7,7 @@
 void printUsage(const char *programName) {
   std::cout
       << "Usage: " << programName << " [OPTIONS]\n"
-      << "Run inference with a RF-DETR ONNX model.\n\n"
+      << "Run image inference with a RF-DETR ONNX model.\n\n"
       << "Required arguments:\n"
       << "  --model PATH        Path to the ONNX model file\n"
       << "  --image PATH        Path to the input image\n\n"
@@ -53,7 +53,6 @@ bool parseArgs(int argc, char **argv, Args &args) {
     }
   }
 
-  // Validate required arguments
   if (args.modelPath.empty()) {
     std::cerr << "Error: --model is required\n";
     return false;
@@ -71,15 +70,13 @@ int main(int argc, char **argv) {
 
   if (!parseArgs(argc, argv, args)) {
     printUsage(argv[0]);
-    return args.modelPath.empty() ? 1 : 0; // Return 0 for --help
+    return args.modelPath.empty() ? 1 : 0;
   }
 
   try {
-    // Initialize the model
     std::cout << "Initializing RF-DETR model..." << std::endl;
     rfdetr::RFDETRModel model(args.modelPath, args.device);
 
-    // Load image
     std::cout << "Loading image: " << args.imagePath << std::endl;
     cv::Mat image = cv::imread(args.imagePath);
     if (image.empty()) {
@@ -88,17 +85,14 @@ int main(int argc, char **argv) {
       return 1;
     }
 
-    // Run inference
     std::cout << "Running inference..." << std::endl;
     std::vector<rfdetr::Detection> detections;
     rfdetr::Timings timings;
     model.predict(image, detections, timings, args.threshold, args.maxBoxes);
 
-    // Calculate processing time
     float processingTime =
         timings.preprocess + timings.ortRun + timings.postprocess;
 
-    // Print results
     std::cout << std::fixed << std::setprecision(2);
     std::cout << "\n--- Inference Results ---\n";
     std::cout << "Preprocessing:  " << timings.preprocess << " ms\n";
@@ -115,7 +109,6 @@ int main(int argc, char **argv) {
     std::cout << "---------------------------------\n";
     std::cout << "Detections found: " << detections.size() << "\n";
 
-    // Draw and save detections
     std::cout << "Saving detections to: " << args.outputPath << std::endl;
     model.saveDetections(image, detections, args.outputPath);
 

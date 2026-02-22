@@ -54,6 +54,10 @@ fi
 
 CMAKE_ONNX_ARG=""
 if [ -n "$ONNX_ROOT" ]; then
+    # Convert relative path to absolute path based on repository root
+    if [[ ! "$ONNX_ROOT" = /* ]]; then
+        ONNX_ROOT="$REPO_ROOT/$ONNX_ROOT"
+    fi
     CMAKE_ONNX_ARG="-DONNXRUNTIME_ROOT_DIR=$ONNX_ROOT"
 fi
 

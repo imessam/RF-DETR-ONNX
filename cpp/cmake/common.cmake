@@ -15,7 +15,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 # ONNX Runtime
 
-set(ONNXRUNTIME_ROOT_DIR "/home/imessam/dev/libs/onnx/onnxruntime-linux-x64-gpu-1.21.0")
+set(ONNXRUNTIME_ROOT_DIR "/opt/onnxruntime" CACHE PATH "Path to ONNX Runtime installation")
 if(ONNXRUNTIME_ROOT_DIR)
     set(ONNXRUNTIME_INCLUDE_DIR "${ONNXRUNTIME_ROOT_DIR}/include")
     find_library(ONNXRUNTIME_LIBRARY

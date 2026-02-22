@@ -1,55 +1,29 @@
 # RF-DETR ONNX Benchmark Results
 
-**Generated:** 2026-02-16 20:23:40
+**Generated:** 2026-02-22 23:14:20
 
 ## Summary
 
-- **Total benchmarks:** 16
-- **Python benchmarks:** 8
-- **C++ benchmarks:** 8
-- **CPU benchmarks:** 8
-- **GPU benchmarks:** 8
+- **Total benchmarks:** 8
+- **Python benchmarks:** 4
+- **C++ benchmarks:** 4
+- **CPU benchmarks:** 4
+- **GPU benchmarks:** 4
 
 - **Iterations per benchmark:** 10
 
 ---
 
-## Model: rf-detr-nano
+## Model: rf-detr-nanol.sim
 
 ### Images
 
 | Implementation | Device | Preprocess (ms) | ORT Run (ms) | Postprocess (ms) | Total (ms) | FPS |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: |
-| Python | CPU | 1.64 | 59.28 | 0.30 | 61.28 | 16.32 |
-| Python | GPU | 1.64 | **8.17** | 0.19 | 10.08 | 99.22 |
-| C++ | CPU | **0.68** | 57.11 | 0.13 | 57.87 | 17.28 |
-| C++ | GPU | 0.73 | 8.18 | **0.10** | **8.99** | **111.17** 🚀 |
-
----
-
-## Model: rf-detr-nano.sim
-
-### Images
-
-| Implementation | Device | Preprocess (ms) | ORT Run (ms) | Postprocess (ms) | Total (ms) | FPS |
-| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
-| Python | CPU | 1.67 | 56.33 | 0.30 | 58.31 | 17.15 |
-| Python | GPU | 1.71 | 8.15 | 0.17 | 10.02 | 99.78 |
-| C++ | CPU | 0.70 | 56.44 | 0.13 | 57.31 | 17.45 |
-| C++ | GPU | **0.69** | **7.99** | **0.10** | **8.76** | **114.13** 🚀 |
-
----
-
-## Model: rf-detr-small
-
-### Images
-
-| Implementation | Device | Preprocess (ms) | ORT Run (ms) | Postprocess (ms) | Total (ms) | FPS |
-| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
-| Python | CPU | 2.74 | 108.88 | 0.30 | 111.82 | 8.94 |
-| Python | GPU | 4.70 | **35.33** | 0.19 | 40.26 | 24.84 |
-| C++ | CPU | **1.00** | 112.74 | 0.14 | 113.84 | 8.78 |
-| C++ | GPU | 1.02 | 36.32 | **0.09** | **37.44** | **26.71** 🚀 |
+| Python | CPU | 1.73 | 63.52 | 0.31 | 65.49 | 15.27 |
+| Python | GPU | 1.55 | **7.91** | 0.17 | 9.68 | 103.28 |
+| C++ | CPU | **0.73** | 68.76 | 0.13 | 69.83 | 14.32 |
+| C++ | GPU | 0.74 | 8.30 | **0.09** | **9.16** | **109.23** 🚀 |
 
 ---
 
@@ -59,10 +33,10 @@
 
 | Implementation | Device | Preprocess (ms) | ORT Run (ms) | Postprocess (ms) | Total (ms) | FPS |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: |
-| Python | CPU | 2.70 | 115.04 | 0.30 | 118.13 | 8.47 |
-| Python | GPU | 4.07 | 33.45 | 0.18 | 37.81 | 26.45 |
-| C++ | CPU | **1.02** | 121.16 | 0.13 | 122.27 | 8.18 |
-| C++ | GPU | 1.04 | **12.37** | **0.09** | **13.38** | **74.76** 🚀 |
+| Python | CPU | 3.00 | 129.19 | 0.32 | 132.37 | 7.55 |
+| Python | GPU | 5.08 | 31.03 | 0.27 | 35.87 | 27.88 |
+| C++ | CPU | **1.20** | 140.89 | 0.14 | 142.28 | 7.03 |
+| C++ | GPU | 1.22 | **11.52** | **0.09** | **12.84** | **77.89** 🚀 |
 
 ---
 

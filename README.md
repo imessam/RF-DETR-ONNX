@@ -135,10 +135,10 @@ from modules.model import RFDETRModel
 model = RFDETRModel("path/to/model.onnx", device="cpu")
 
 # Run inference
-scores, labels, boxes, masks = model.predict("path/to/image.jpg")
+detections, timings = model.predict("path/to/image.jpg")
 
 # Visualize results
-model.save_detections("path/to/image.jpg", boxes, labels, masks, "output/result.jpg")
+model.save_detections("path/to/image.jpg", detections, "output/result.jpg")
 ```
 
 ## C++ Implementation

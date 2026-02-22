@@ -26,12 +26,12 @@ if (NOT TARGET rfdetr_onnx)
     $<INSTALL_INTERFACE:include>
   )
 
-  foreach(_lib_include_dir
-  ${libs_include_rfdetr_onnx})
-  target_include_directories(rfdetr_onnx PUBLIC
-        ${_lib_include_dir}
-      )
-  endforeach()
+  # foreach(_lib_include_dir
+  # ${libs_include_rfdetr_onnx})
+  # target_include_directories(rfdetr_onnx PUBLIC
+  #       ${_lib_include_dir}
+  #     )
+  # endforeach()
 
   set(DEPS 
     ${OpenCV_LIBS}

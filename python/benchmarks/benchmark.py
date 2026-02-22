@@ -66,7 +66,7 @@ def run_benchmark(model_path, data_path, device, num_iterations=100, warmup_iter
         if sleep_per_image > 0:
             time.sleep(sleep_per_image)
         img_idx = i % len(images)
-        _, _, _, _, timings = model.predict(images[img_idx])
+        _, timings = model.predict(images[img_idx])
         
         pre = timings['preprocess']
         ort = timings['ort_run']

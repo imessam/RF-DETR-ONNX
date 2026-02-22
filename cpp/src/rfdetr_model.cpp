@@ -244,13 +244,10 @@ void RFDETRModel::saveDetections(const cv::Mat &image,
         continue;
 
       cv::Scalar color = labelColors[det.label];
-      cv::Mat colorMask(det.mask.size(), CV_8UC3);
-      colorMask.setTo(color, det.mask);
-
-      cv::addWeighted(overlay, 1.0, colorMask, 0.4, 0.0, overlay);
+      overlay.setTo(color, det.mask);
     }
 
-    cv::addWeighted(result, 0.6, overlay, 0.4, 0.0, result);
+    cv::addWeighted(overlay, 0.5, result, 0.5, 0.0, result);
   }
 
   // Draw bounding boxes and labels

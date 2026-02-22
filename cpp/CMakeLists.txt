@@ -10,6 +10,7 @@ option(ENABLE_EXAMPLES "Enable C++ examples" ON)
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/common.cmake)
 
+include(CTest)
 include(CMakePackageConfigHelpers)
 
 ## Libraries setup

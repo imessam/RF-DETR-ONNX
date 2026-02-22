@@ -4,7 +4,8 @@ import sys
 import time
 from dataclasses import dataclass
 from typing import Optional, Union, NamedTuple
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image
+import cv2
 import onnxruntime as ort
 from .onnx_runtime import OnnxRuntimeSession
 from .utils import sigmoid, box_cxcywh_to_xywh
@@ -225,57 +226,57 @@ class RFDETRModel:
             detections (list[Detection]): List of Detection objects.
             save_image_path (str): Path to save the result.
         """
-        # Convert BGR to RGBA for PIL
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        base = Image.fromarray(image_rgb)
-        result_rgba = base.convert("RGBA")
+        result = image.copy()
+        overlay = image.copy()
 
-        # Generate a color for each unique label (RGBA)
+        # Generate a color for each unique label (BGR)
         unique_labels = {det.label for det in detections}
         label_colors = {
             label: (random.randint(0, 255),
                     random.randint(0, 255),
-                    random.randint(0, 255),
-                    100) # Create a semi-transparent overlay for masks
+                    random.randint(0, 255))
             for label in unique_labels
         }
 
-        overlay_image = Image.new("RGBA", base.size, (0, 0, 0, 0))
+        # Draw masks on the overlay
+        for det in detections:
+            if det.mask is not None:
+                color = label_colors[det.label]
+                mask_bool = det.mask > 0
+                overlay[mask_bool] = color
 
+        # Blend the overlay with the original image
+        alpha = 0.5
+        cv2.addWeighted(overlay, alpha, result, 1 - alpha, 0, result)
+
+        # Draw boxes and labels on the result
         for det in detections:
             label = det.label
             color = label_colors[label]
-            
-            # Draw mask if available
-            if det.mask is not None:
-                mask_pil = Image.fromarray(det.mask).convert("L")
-                mask_color = Image.new("RGBA", base.size, color)
-                overlay_image.paste(mask_color, (0, 0), mask_pil)
-
-        # Composite mask overlay
-        result = Image.alpha_composite(result_rgba, overlay_image)
-        result_rgb = result.convert("RGB")
-        draw = ImageDraw.Draw(result_rgb)
-        
-        font = ImageFont.load_default()
-
-        # Loop over detections and draw boxes
-        for det in detections:
-            label = det.label
             box = det.unnormalized_box
             
-            # Use same color as mask but fully opaque for the outline
-            box_color = tuple(label_colors[label][:3])
+            # box is [x, y, w, h] float or int, convert to int for cv2
+            x, y, w, h = int(box[0]), int(box[1]), int(box[2]), int(box[3])
             
-            # box is [x, y, w, h]
-            x, y, w, h = box
-            draw.rectangle([x, y, x + w, y + h], outline=box_color, width=4)
+            # Draw bounding box
+            cv2.rectangle(result, (x, y), (x + w, y + h), color, 4)
 
-            # Draw label text
+            # Draw label text background
+            text = str(label)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.5
+            thickness = 1
+            
+            (text_width, text_height), baseline = cv2.getTextSize(text, font, font_scale, thickness)
+            
             text_x = x + 5
-            text_y = y + 5
-            draw.text((text_x, text_y), str(label), fill=box_color, font=font)
-
+            text_y = y + 5 + text_height
+            
+            cv2.rectangle(result, (text_x, text_y - text_height - 5), (text_x + text_width, text_y + 5), color, -1)
+            
+            # Draw label text
+            text_color = (255, 255, 255)
+            cv2.putText(result, text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
 
         # Save
-        result_rgb.save(save_image_path)
+        cv2.imwrite(save_image_path, result)

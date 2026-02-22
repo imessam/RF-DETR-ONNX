@@ -87,12 +87,6 @@ mkdir -p build && cd build
 cmake $CMAKE_ONNX_ARG -DENABLE_TESTS=ON ..
 make -j$(nproc)
 
-echo ">>> Building C++ Tests (Standalone Tool)..."
-cd "$REPO_ROOT/cpp/tests"
-mkdir -p build && cd build
-cmake $CMAKE_ONNX_ARG ..
-make -j$(nproc)
-
 
 # 2. Manage Models (prefer root models/, else download)
 echo ">>> Managing Models..."
@@ -157,7 +151,7 @@ uv run python python/tests/generate_onnx.py --model "$ONNX_MODEL" --input "$ASSE
 
 # 5. Generate C++ ONNX Results
 echo ">>> Generating C++ ONNX results..."
-"$REPO_ROOT/cpp/tests/build/generate_onnx" "$ONNX_MODEL" "$ASSETS_DIR" "$DEVICE" "$RESULTS_DIR/cpp_onnx"
+"$REPO_ROOT/cpp/build/tests/generate_onnx" "$ONNX_MODEL" "$ASSETS_DIR" "$DEVICE" "$RESULTS_DIR/cpp_onnx"
 
 # 6. Run Accuracy Verification
 echo ">>> Running Accuracy Verification..."

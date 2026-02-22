@@ -15,6 +15,7 @@ target_include_directories(generate_onnx PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../inc
 
 target_link_libraries(
   generate_onnx
+  PRIVATE
   rfdetr_onnx
 )
 
@@ -23,10 +24,11 @@ add_executable(
   ${CMAKE_CURRENT_LIST_DIR}/test_utils.cpp
 )
 
-target_include_directories(test_utils PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
+target_include_directories(test_utils PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../include)
 
 target_link_libraries(
   test_utils
+  PRIVATE
   rfdetr_onnx
   gtest
   gtest_main
@@ -37,12 +39,16 @@ add_executable(
   ${CMAKE_CURRENT_LIST_DIR}/test_model.cpp
 )
 
-target_include_directories(test_model PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
+target_include_directories(test_model PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../include)
 
 target_link_libraries(
   test_model
+  PRIVATE
   rfdetr_onnx
   gtest
   gtest_main
 )
 
+include(GoogleTest)
+gtest_discover_tests(test_utils)
+gtest_discover_tests(test_model)

@@ -67,7 +67,7 @@ def main() -> None:
         raise FileNotFoundError(f"Could not load image: {args.image}")
 
     # Run inference and get detections, measuring time
-    _, labels, boxes, masks, timings = model.predict(image, args.threshold, args.max_number_boxes)
+    detections, timings = model.predict(image, args.threshold, args.max_number_boxes)
     
     # Calculate pure processing time (Pre + ORT + Post)
     processing_time = timings['preprocess'] + timings['ort_run'] + timings['postprocess']
@@ -85,7 +85,7 @@ def main() -> None:
     print(f"---------------------------------")
     
     # Draw and save detections
-    model.save_detections(image, boxes, labels, masks, args.output)
+    model.save_detections(image, detections, args.output)
     print(f"Detections saved to: {args.output}")
 
 if __name__ == "__main__":

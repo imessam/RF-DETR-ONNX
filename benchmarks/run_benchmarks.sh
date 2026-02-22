@@ -97,15 +97,9 @@ echo "2 >>> Building C++ Library..."
 cd "$REPO_ROOT/cpp"
 mkdir -p build
 cd build
-cmake ..
+cmake .. -DENABLE_BENCHMARKS=ON
 make -j$(nproc)
 
-echo ">>> Building C++ Benchmark..."
-cd "$REPO_ROOT/cpp/benchmarks"
-mkdir -p build
-cd build
-cmake ..
-make -j$(nproc)
 
 # 3. Discover Models
 echo "3 >>> Discovering ONNX models..."
@@ -155,14 +149,14 @@ for model_path in "${MODELS[@]}"; do
         echo ">>> Resting for $COOLDOWN_SECONDS seconds..."
         sleep "$COOLDOWN_SECONDS"
         echo "4 >>> Running C++ $type Benchmark (CPU)..."
-        "$REPO_ROOT/cpp/benchmarks/build/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" cpu "$ITERATIONS" "$SLEEP_PER_IMAGE" $VERBOSE_CPP_ARG
+        "$REPO_ROOT/cpp/build/benchmarks/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" cpu "$ITERATIONS" "$SLEEP_PER_IMAGE" $VERBOSE_CPP_ARG
         mv benchmark_cpp_cpu.json "$RESULTS_DIR/cpp_cpu_${type}_${model_name}.json"
         
         # C++ GPU
         echo ">>> Resting for $COOLDOWN_SECONDS seconds..."
         sleep "$COOLDOWN_SECONDS"
         echo "4 >>> Running C++ $type Benchmark (GPU)..."
-        "$REPO_ROOT/cpp/benchmarks/build/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" gpu "$ITERATIONS" "$SLEEP_PER_IMAGE" $VERBOSE_CPP_ARG
+        "$REPO_ROOT/cpp/build/benchmarks/rfdetr_benchmark" "$model_path" "$REPO_ROOT/$path" gpu "$ITERATIONS" "$SLEEP_PER_IMAGE" $VERBOSE_CPP_ARG
         mv benchmark_cpp_gpu.json "$RESULTS_DIR/cpp_gpu_${type}_${model_name}.json"
     done
 done

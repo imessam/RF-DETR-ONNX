@@ -30,3 +30,11 @@ def box_cxcywh_to_xyxyn(x: np.ndarray) -> np.ndarray:
     xmax = cx + w / 2
     ymax = cy + h / 2
     return np.stack([xmin, ymin, xmax, ymax], axis=-1)
+
+def box_cxcywh_to_xywh(x: np.ndarray) -> np.ndarray:
+    """Convert boxes from center x, y, width, height (cxcywh) to x_left, y_top, width, height (xywh)."""
+    cx, cy, w, h = x[..., 0], x[..., 1], x[..., 2], x[..., 3]
+    x_left = cx - w / 2
+    y_top = cy - h / 2
+    return np.stack([x_left, y_top, w, h], axis=-1)
+

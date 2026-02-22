@@ -10,11 +10,9 @@ include(${CMAKE_CURRENT_LIST_DIR}/../cmake/common.cmake)
 ## Libraries setup
 
 set(RFDETRLib_SOURCES
-
-  ${CMAKE_CURRENT_LIST_DIR}/class_abstract_base.cpp
-
-  ${CMAKE_CURRENT_LIST_DIR}/class_implemented_derived.cpp
-
+  ${CMAKE_CURRENT_LIST_DIR}/utils.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/onnx_runtime.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rfdetr_model.cpp
 )
 
 if (NOT TARGET rfdetr_onnx)
@@ -23,25 +21,38 @@ if (NOT TARGET rfdetr_onnx)
 
   add_library(rfdetr_onnx STATIC ${RFDETRLib_SOURCES})
 
-  target_include_directories(rfdetr_onnx PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
-
-  foreach(_lib_include_dir
-  ${libs_include_rfdetr_onnx})
   target_include_directories(rfdetr_onnx PUBLIC
-        ${_lib_include_dir}
-      )
-  endforeach()
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../include>
+    $<INSTALL_INTERFACE:include>
+  )
+
+  # foreach(_lib_include_dir
+  # ${libs_include_rfdetr_onnx})
+  # target_include_directories(rfdetr_onnx PUBLIC
+  #       ${_lib_include_dir}
+  #     )
+  # endforeach()
 
   set(DEPS 
+    ${OpenCV_LIBS}
+    ${ONNXRUNTIME_LIBRARY}
+  )
 
-  # yaml-cpp::yaml-cpp
-  # PkgConfig::gstreamer
-  # PkgConfig::gstreamer-sdp
-  # PkgConfig::gstreamer-app
-  # PkgConfig::gstreamer-video
-  # PkgConfig::gstreamer-pbutils
-  # ${OpenCV_LIBS}
+  target_include_directories(rfdetr_onnx PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
 
-)
+  target_link_libraries(rfdetr_onnx PUBLIC ${DEPS})
+
+  install(TARGETS rfdetr_onnx
+    EXPORT rfdetr_onnxTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+  )
+
+  install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../include/
+    DESTINATION include
+  )
+
 
 endif()

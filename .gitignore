@@ -2,12 +2,17 @@
 *.onnx
 *.pth
 *.pt
+*.json
+*.mp4
 
 # Others
 *.pyc
 *.lock
 *.ipynb
+*.tgz
 
 *.egg-info
 .vscode/
 build/
+.cache/
+.venv/

@@ -6,24 +6,49 @@ project(RFDETRONNXTest VERSION 1.0
 
 include(${CMAKE_CURRENT_LIST_DIR}/../cmake/common.cmake)
 
-enable_testing()
-
 add_executable(
-  rfdetr_onnx_test
-
-  ${CMAKE_CURRENT_LIST_DIR}/test_main.cpp
-
-  ${CMAKE_CURRENT_LIST_DIR}/test_class_implemented_derived.cpp
+  generate_onnx
+  ${CMAKE_CURRENT_LIST_DIR}/generate_onnx.cpp
 )
 
-target_include_directories(rfdetr_onnx_test PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
-target_include_directories(rfdetr_onnx_test PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../test-libs/another_module/cpp/include)
-
+target_include_directories(generate_onnx PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../include)
 
 target_link_libraries(
-  rfdetr_onnx_test
-  GTest::gtest_main
+  generate_onnx
+  PRIVATE
+  rfdetr_onnx
+)
+
+add_executable(
+  test_utils
+  ${CMAKE_CURRENT_LIST_DIR}/test_utils.cpp
+)
+
+target_include_directories(test_utils PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../include)
+
+target_link_libraries(
+  test_utils
+  PRIVATE
+  rfdetr_onnx
+  gtest
+  gtest_main
+)
+
+add_executable(
+  test_model
+  ${CMAKE_CURRENT_LIST_DIR}/test_model.cpp
+)
+
+target_include_directories(test_model PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../include)
+
+target_link_libraries(
+  test_model
+  PRIVATE
+  rfdetr_onnx
+  gtest
+  gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(rfdetr_onnx_test)
+gtest_discover_tests(test_utils)
+gtest_discover_tests(test_model)

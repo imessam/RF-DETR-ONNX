@@ -16,28 +16,29 @@ git clone https://github.com/imessam/rf-detr-onnx.git
 cd rf-detr-onnx
 ```
 
-=== "CPU only"
+`onnxruntime-gpu` is a **base dependency** — GPU acceleration is enabled by default with `uv sync`. There is no separate `--extra gpu`.
+
+```bash
+# Default install (GPU via onnxruntime-gpu)
+uv sync
+
+# With model export support
+uv sync --extra export
+
+# With test support
+uv sync --extra test
+
+# With documentation tools
+uv sync --extra docs
+```
+
+!!! tip "CPU-only override"
+    If you don't have a GPU, override `onnxruntime-gpu` after syncing:
 
     ```bash
     uv sync
-    ```
-
-=== "GPU (CUDA)"
-
-    ```bash
-    uv sync --extra gpu
-    ```
-
-=== "Development (export + test)"
-
-    ```bash
-    uv sync --extra export --extra test
-    ```
-
-=== "With Documentation"
-
-    ```bash
-    uv sync --extra docs
+    .venv/bin/pip uninstall -y onnxruntime-gpu
+    .venv/bin/pip install onnxruntime
     ```
 
 ---

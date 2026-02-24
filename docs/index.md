@@ -6,7 +6,7 @@
 
 **RF-DETR ONNX** is a modular, production-ready library for running [RF-DETR](https://github.com/roboflow/rf-detr) object detection and instance segmentation with [ONNX Runtime](https://onnxruntime.ai/) — in both Python and C++.
 
-Developed as a fork of [PierreMarieCurie/rf-detr-onnx](https://github.com/PierreMarieCurie/rf-detr-onnx), it adds a modular architecture, manual device selection, performance metrics, and a high-performance C++ library with zero-copy inference.
+Developed as a fork of [PierreMarieCurie/rf-detr-onnx](https://github.com/PierreMarieCurie/rf-detr-onnx), it adds a modular architecture, manual device selection, performance metrics, and a high-performance C++ library.
 
 ---
 
@@ -15,7 +15,7 @@ Developed as a fork of [PierreMarieCurie/rf-detr-onnx](https://github.com/Pierre
 - ✅ **Python & C++ implementations** — from prototyping to production
 - ⚡ **Automatic provider selection** — TensorRT → CUDA → CPU fallback
 - 📊 **Detailed timing breakdown** — preprocess, inference, postprocess
-- 🔧 **Zero-copy C++ inference** — wraps ONNX Runtime outputs directly into `cv::Mat`
+- 🔧 **Optimized C++ implementation** — high-performance library for production deployment
 - 🎯 **Instance segmentation** — supports models with mask outputs
 - 📦 **Modular library** — install as a static C++ library or Python package
 

@@ -47,7 +47,7 @@ rf-detr-onnx/
 │   └── modules/        # Core library (model, session, utils)
 ├── cpp/                # High-performance C++ implementation
 │   ├── include/        # Header files
-│   ├── src/            # Source code (zero-copy optimized)
+│   ├── src/            # Source code
 │   └── CMakeLists.txt  # Build configuration
 ├── benchmarks/         # Automated performance benchmarking suite
 ├── tools/              # Model export and conversion scripts
@@ -60,7 +60,7 @@ rf-detr-onnx/
 | Component | Description |
 |-----------|-------------|
 | [python/](python/) | Modular Python library for fast prototyping and high-level use |
-| [cpp/](cpp/) | Zero-copy optimized C++ library for production deployment |
+| [cpp/](cpp/) | High-performance C++ library for production deployment |
 | [benchmarks/](benchmarks/) | Automated benchmarking suite (Python & C++, CPU & GPU) |
 | [tools/](tools/) | Export scripts for converting RF-DETR checkpoints to ONNX |
 | [tests/](tests/) | Accuracy validation pipeline against PyTorch reference |
@@ -69,23 +69,34 @@ rf-detr-onnx/
 
 ## Installation
 
-### Using uv (recommended)
+### Using uv (Recommended)
 
-First, install [uv](https://docs.astral.sh/uv/) if you haven't already, then:
+[uv](https://docs.astral.sh/uv/) is the recommended package manager. Install it first, then:
 
 ```bash
 git clone https://github.com/imessam/rf-detr-onnx.git
 cd rf-detr-onnx
 
-# CPU only
+# GPU acceleration is the default (onnxruntime-gpu is a base dependency)
 uv sync
 
-# GPU acceleration (CUDA)
-uv sync --extra gpu
+# With model export support
+uv sync --extra export
 
-# Full development (export + testing)
-uv sync --extra export --extra test
+# With test support
+uv sync --extra test
+
+# With documentation tools
+uv sync --extra docs
 ```
+
+> **CPU-only:** `onnxruntime-gpu` is installed by default via `uv sync`. If you don't have a GPU,
+> override it after syncing:
+> ```bash
+> uv sync
+> .venv/bin/pip uninstall -y onnxruntime-gpu
+> .venv/bin/pip install onnxruntime
+> ```
 
 ### Using pip
 
@@ -163,7 +174,7 @@ print(f"Total:       {timings['total']:.2f} ms")
 
 ## C++ Implementation
 
-The C++ library provides high-performance, zero-copy inference for production deployment.
+The C++ library provides high-performance inference for production deployment.
 
 ### Prerequisites
 
@@ -225,10 +236,6 @@ find_package(rfdetr_onnx REQUIRED)
 add_executable(my_app main.cpp)
 target_link_libraries(my_app PRIVATE rfdetr_onnx::rfdetr_onnx)
 ```
-
-### Zero-Copy Optimization
-
-The C++ implementation avoids copying ONNX Runtime output tensors by wrapping them directly into `cv::Mat` objects. This significantly reduces CPU overhead when working with high-resolution segmentation masks.
 
 ---
 

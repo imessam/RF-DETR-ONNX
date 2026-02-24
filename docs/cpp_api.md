@@ -113,7 +113,7 @@ Performs a dummy inference pass to initialize GPU/TensorRT resources. Called aut
 
 ## Class: `OnnxRuntimeSession`
 
-Low-level ONNX Runtime wrapper with zero-copy output handling.
+Low-level ONNX Runtime session wrapper.
 
 **Header:** [`cpp/include/onnx_runtime.hpp`](https://github.com/imessam/RF-DETR-ONNX/blob/main/cpp/include/onnx_runtime.hpp)
 
@@ -128,19 +128,9 @@ OnnxRuntimeSession(const std::string& modelPath,
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `run(input)` | `std::vector<cv::Mat>` | Run inference; output tensors wrapped as `cv::Mat` (zero-copy) |
+| `run(input)` | `std::vector<cv::Mat>` | Run inference; returns output tensors as `cv::Mat` |
 | `getInputShape()` | `std::vector<int64_t>` | Expected input shape `[N, C, H, W]` |
 | `getInputName()` | `std::string` | Name of the input tensor |
-
----
-
-## Zero-Copy Output Handling
-
-Instead of copying output tensors from ONNX Runtime memory, `OnnxRuntimeSession::run()` wraps raw output pointers directly into `cv::Mat` objects using `cv::Mat(shape, type, ptr)`. No heap allocation or data copy occurs.
-
-This is especially impactful for segmentation models where mask tensors can be large.
-
----
 
 ## Usage Example
 

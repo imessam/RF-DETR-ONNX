@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://imessam.github.io/RF-DETR-ONNX/</loc>
+         <lastmod>2026-02-24</lastmod>
+    </url>
+    <url>
+         <loc>https://imessam.github.io/RF-DETR-ONNX/benchmarks/</loc>
+         <lastmod>2026-02-24</lastmod>
+    </url>
+    <url>
+         <loc>https://imessam.github.io/RF-DETR-ONNX/cpp_api/</loc>
+         <lastmod>2026-02-24</lastmod>
+    </url>
+    <url>
+         <loc>https://imessam.github.io/RF-DETR-ONNX/installation/</loc>
+         <lastmod>2026-02-24</lastmod>
+    </url>
+    <url>
+         <loc>https://imessam.github.io/RF-DETR-ONNX/python_api/</loc>
+         <lastmod>2026-02-24</lastmod>
+    </url>
+    <url>
+         <loc>https://imessam.github.io/RF-DETR-ONNX/quickstart/</loc>
+         <lastmod>2026-02-24</lastmod>
+    </url>
+    <url>
+         <loc>https://imessam.github.io/RF-DETR-ONNX/tools/</loc>
+         <lastmod>2026-02-24</lastmod>
+    </url>
+</urlset>

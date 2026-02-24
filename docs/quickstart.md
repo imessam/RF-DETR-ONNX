@@ -14,12 +14,6 @@ models/
     └── rf-detr-nano.sim.onnx
 ```
 
-Or use the download helper:
-
-```bash
-bash tools/download_onnx.sh
-```
-
 ---
 
 ## 2. CLI Inference

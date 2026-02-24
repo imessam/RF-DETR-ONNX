@@ -84,12 +84,13 @@ The C++ implementation requires:
 ```bash
 cd cpp
 mkdir build && cd build
-cmake ..
+cmake .. -DONNXRUNTIME_ROOT_DIR=/path/to/onnxruntime
 make -j$(nproc)
 ```
 
-!!! note
-    For GPU support, ensure the ONNX Runtime C++ library you link against was built with CUDA/TensorRT support.
+!!! tip
+    Set `ONNXRUNTIME_ROOT_DIR` to the root of your ONNX Runtime C++ installation (the
+    folder that contains `include/` and `lib/`). The default search path is `/opt/onnxruntime`.
 
 ---
 

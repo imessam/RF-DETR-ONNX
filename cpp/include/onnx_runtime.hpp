@@ -66,13 +66,13 @@ private:
   std::vector<int64_t> inputShape_;
   std::string inputName_;
   std::string activeProvider_;
-  std::string outputNames_[3]; // Support up to 3 outputs (boxes, scores, masks)
+  std::vector<std::string> outputNames_; // Output names: boxes, scores, [masks]
   size_t numOutputs_;
 
-  // Cached for performance: avoid rebuilding on every run() call
+  // Cached for performance: avoid rebuilding const char** array on every run()
   std::vector<const char *> cachedOutputNamesPtr_;
 
-  // Store output tensors to keep the data valid for zero-copy cv::Mat views
+  // Kept alive so that cv::Mat views returned by run() remain valid
   std::vector<Ort::Value> lastOutputTensors_;
 };
 

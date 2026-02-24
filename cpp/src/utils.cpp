@@ -1,23 +1,8 @@
 #include "utils.hpp"
-#include <cmath>
 
 namespace rfdetr {
 
-void sigmoid(const cv::Mat &x, cv::Mat &output) {
-  // Optimized sigmoid using raw pointer loop
-  output.create(x.dims, x.size.p, x.type());
-
-  const float *src = reinterpret_cast<const float *>(x.data);
-  float *dst = reinterpret_cast<float *>(output.data);
-  size_t total = x.total();
-
-  for (size_t i = 0; i < total; ++i) {
-    dst[i] = 1.0f / (1.0f + std::exp(-src[i]));
-  }
-}
-
 void boxCxcywhToXyxyn(const cv::Mat &boxes, cv::Mat &output) {
-  // Vectorized box conversion using raw pointer arithmetic
   output.create(boxes.size(), boxes.type());
 
   const float *src = boxes.ptr<float>();

@@ -57,7 +57,7 @@ RFDETRModel(const std::string& modelPath,
 | Parameter | Description |
 |-----------|-------------|
 | `modelPath` | Path to the `.onnx` model file |
-| `device` | `"gpu"` (TensorRT → CUDA → CPU fallback) or `"cpu"` |
+| `device` | Device: `"gpu"` (tries TensorRT → CUDA → CPU in order) or `"cpu"` |
 
 ---
 
@@ -172,6 +172,7 @@ Install the library first:
 
 ```bash
 cd cpp && mkdir build && cd build
-cmake .. && make -j$(nproc)
+cmake .. -DONNXRUNTIME_ROOT_DIR=/path/to/onnxruntime
+make -j$(nproc)
 cmake --install .
 ```

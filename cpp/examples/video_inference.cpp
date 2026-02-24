@@ -1,4 +1,5 @@
 #include "rfdetr_model.hpp"
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <opencv2/opencv.hpp>
@@ -71,9 +72,11 @@ static void drawDetections(const cv::Mat &image,
                            cv::Mat &output) {
   output = image.clone();
 
+  // Generate a random color per unique label.
+  // Note: colors are re-randomized on each call; for stable per-label colors
+  // across frames, use a fixed seed or derive the color from the label index.
   std::map<int, cv::Scalar> labelColors;
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  std::mt19937 gen(std::random_device{}());
   std::uniform_int_distribution<> dis(0, 255);
 
   for (const auto &det : detections) {
@@ -82,13 +85,12 @@ static void drawDetections(const cv::Mat &image,
     }
   }
 
-  bool hasMasks = false;
-  for (const auto &det : detections) {
-    if (!det.mask.empty()) {
-      hasMasks = true;
-      break;
-    }
-  }
+  // Draw semi-transparent masks if the model produced segmentation output.
+  // Note: this mirrors the logic in RFDETRModel::saveDetections; for shared
+  // use consider moving visualization into a common utility function.
+  bool hasMasks =
+      std::any_of(detections.begin(), detections.end(),
+                  [](const rfdetr::Detection &d) { return !d.mask.empty(); });
 
   if (hasMasks) {
     cv::Mat overlay = output.clone();
@@ -119,8 +121,7 @@ static void drawDetections(const cv::Mat &image,
         cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseline);
 
     cv::Point textOrg(box.x + 5, box.y + textSize.height + 5);
-    cv::putText(output, text, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, color,
-                2);
+    cv::putText(output, text, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, color, 2);
   }
 }
 
@@ -129,7 +130,8 @@ int main(int argc, char **argv) {
 
   if (!parseArgs(argc, argv, args)) {
     printUsage(argv[0]);
-    return args.modelPath.empty() ? 1 : 0;
+    // Return 1 only if required args are missing; 0 if user asked for help
+    return args.modelPath.empty() && args.videoPath.empty() ? 1 : 0;
   }
 
   try {

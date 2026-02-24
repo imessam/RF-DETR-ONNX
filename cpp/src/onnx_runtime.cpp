@@ -14,39 +14,34 @@ OnnxRuntimeSession::OnnxRuntimeSession(const std::string &modelPath,
   bool success = false;
   std::string lastError;
 
-  // Try providers in priority order with fallback
-  for (size_t i = 0; i < providers.size(); ++i) {
+  // Try each provider in priority order, falling back to the next on failure.
+  // CPU is always last in the list so at least one provider will succeed.
+  for (const auto &provider : providers) {
     try {
       Ort::SessionOptions sessionOptions;
       sessionOptions.SetGraphOptimizationLevel(
           GraphOptimizationLevel::ORT_ENABLE_ALL);
 
-      // Add providers from current priority down to CPU
-      for (size_t j = i; j < providers.size(); ++j) {
-        if (providers[j] == "TensorrtExecutionProvider") {
-          std::cout << "Attempting to use TensorRT provider..." << std::endl;
-          OrtTensorRTProviderOptions tensorrtOptions{};
-          sessionOptions.AppendExecutionProvider_TensorRT(tensorrtOptions);
-        } else if (providers[j] == "CUDAExecutionProvider") {
-          std::cout << "Attempting to use CUDA provider..." << std::endl;
-          OrtCUDAProviderOptions cudaOptions{};
-          sessionOptions.AppendExecutionProvider_CUDA(cudaOptions);
-        }
+      if (provider == "TensorrtExecutionProvider") {
+        std::cout << "Attempting to use TensorRT provider..." << std::endl;
+        OrtTensorRTProviderOptions tensorrtOptions{};
+        sessionOptions.AppendExecutionProvider_TensorRT(tensorrtOptions);
+      } else if (provider == "CUDAExecutionProvider") {
+        std::cout << "Attempting to use CUDA provider..." << std::endl;
+        OrtCUDAProviderOptions cudaOptions{};
+        sessionOptions.AppendExecutionProvider_CUDA(cudaOptions);
       }
+      // CPUExecutionProvider is the ORT default — no explicit append needed.
 
-      // Create session
       session_ = std::make_unique<Ort::Session>(env_, modelPath.c_str(),
                                                 sessionOptions);
-
-      activeProvider_ = providers[i];
+      activeProvider_ = provider;
       success = true;
       break;
     } catch (const Ort::Exception &e) {
       lastError = e.what();
-      std::cerr << "Warning: Failed to initialize session with provider "
-                << providers[i] << ": " << lastError << std::endl;
-      std::cerr << "Falling back to next available provider..." << std::endl;
-      continue;
+      std::cerr << "Warning: provider " << provider << " failed: " << lastError
+                << ". Trying next..." << std::endl;
     }
   }
 
@@ -65,24 +60,19 @@ OnnxRuntimeSession::OnnxRuntimeSession(const std::string &modelPath,
     auto tensorInfo = inputTypeInfo.GetTensorTypeAndShapeInfo();
     inputShape_ = tensorInfo.GetShape();
 
-    // Get output information and cache output names
+    // Get output names and cache raw pointers (ONNX API requires const char**)
     numOutputs_ = session_->GetOutputCount();
-    cachedOutputNamesPtr_.clear();
-    for (size_t i = 0; i < numOutputs_ && i < 3; ++i) {
+    outputNames_.resize(numOutputs_);
+    cachedOutputNamesPtr_.resize(numOutputs_);
+    for (size_t i = 0; i < numOutputs_; ++i) {
       auto outputNameAllocated = session_->GetOutputNameAllocated(i, allocator);
       outputNames_[i] = outputNameAllocated.get();
-    }
-    // Build the cached pointer vector once
-    for (size_t i = 0; i < numOutputs_; ++i) {
-      cachedOutputNamesPtr_.push_back(outputNames_[i].c_str());
+      cachedOutputNamesPtr_[i] = outputNames_[i].c_str();
     }
 
     std::cout << "Input shape: [";
-    for (size_t i = 0; i < inputShape_.size(); ++i) {
-      std::cout << inputShape_[i];
-      if (i < inputShape_.size() - 1)
-        std::cout << ", ";
-    }
+    for (size_t i = 0; i < inputShape_.size(); ++i)
+      std::cout << (i ? ", " : "") << inputShape_[i];
     std::cout << "]" << std::endl;
 
     std::cout << "--- ONNX Runtime: Session created successfully ---"
@@ -148,7 +138,8 @@ void OnnxRuntimeSession::run(const cv::Mat &inputData,
       session_->Run(Ort::RunOptions{nullptr}, inputNames, &inputTensor, 1,
                     cachedOutputNamesPtr_.data(), numOutputs_);
 
-  // Convert output tensors to OpenCV Mats (Zero-copy)
+  // Wrap each output tensor as a cv::Mat pointing into ORT-managed memory.
+  // lastOutputTensors_ keeps the tensors alive so the pointers stay valid.
   outputs.clear();
   outputs.reserve(numOutputs_);
 
@@ -156,16 +147,13 @@ void OnnxRuntimeSession::run(const cv::Mat &inputData,
     auto tensorInfo = lastOutputTensors_[i].GetTensorTypeAndShapeInfo();
     auto shape = tensorInfo.GetShape();
 
-    // Get pointer to tensor data
     float *tensorData = lastOutputTensors_[i].GetTensorMutableData<float>();
 
-    // Convert shape to OpenCV dims
+    // ONNX shape is int64; cv::Mat dims require int
     std::vector<int> cvShape;
-    for (auto dim : shape) {
+    for (auto dim : shape)
       cvShape.push_back(static_cast<int>(dim));
-    }
 
-    // Create Mat wrapping the pointer (Zero-copy)
     outputs.emplace_back(cvShape, CV_32F, tensorData);
   }
 }

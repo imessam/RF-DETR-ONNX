@@ -104,11 +104,6 @@ private:
   // Pre-allocated buffer for preprocessing output (avoids allocation per call)
   std::vector<float> preprocessBuffer_;
 
-  // Pre-computed normalization: pixel * normScale_[c] + normOffset_[c]
-  // where normScale = 1.0 / (255.0 * std), normOffset = -mean / std
-  float normScale_[3];
-  float normOffset_[3];
-
   static constexpr float MEANS[3] = {0.485f, 0.456f, 0.406f};
   static constexpr float STDS[3] = {0.229f, 0.224f, 0.225f};
 };

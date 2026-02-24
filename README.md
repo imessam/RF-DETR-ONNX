@@ -142,7 +142,7 @@ uv run python python/inference.py \
 | `--output` | `output/output.jpg` | Path to save the annotated output image |
 | `--threshold` | `0.5` | Confidence threshold for filtering detections |
 | `--max_number_boxes` | `300` | Maximum number of boxes to return |
-| `--device` | `gpu` | Device to use: `gpu` or `cpu` |
+| `--device` | `gpu` | Device: `gpu` (tries TensorRT → CUDA → CPU) or `cpu` |
 
 ### Python API
 
@@ -185,9 +185,11 @@ Requires: OpenCV 4.x, ONNX Runtime C++ API, and CMake ≥ 3.15.
 ```bash
 cd cpp
 mkdir build && cd build
-cmake ..
+cmake .. -DONNXRUNTIME_ROOT_DIR=/path/to/onnxruntime
 make -j$(nproc)
 ```
+
+> **Note:** Set `ONNXRUNTIME_ROOT_DIR` to the root of your ONNX Runtime C++ installation (contains `include/` and `lib/`). Defaults to `/opt/onnxruntime`.
 
 #### CMake Options
 
@@ -224,7 +226,7 @@ cmake .. \
 
 ```bash
 cd cpp && mkdir build && cd build
-cmake ..
+cmake .. -DONNXRUNTIME_ROOT_DIR=/path/to/onnxruntime
 make -j$(nproc)
 cmake --install .
 ```

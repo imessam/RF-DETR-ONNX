@@ -12,23 +12,15 @@ RFDETRModel::RFDETRModel(const std::string &modelPath,
   // Initialize ONNX Runtime session
   ortSession_ = std::make_unique<OnnxRuntimeSession>(modelPath, device);
 
-  // Get input shape
+  // Get input shape from the session
   auto inputShape = ortSession_->getInputShape();
   inputHeight_ = static_cast<int>(inputShape[2]);
   inputWidth_ = static_cast<int>(inputShape[3]);
 
-  // Pre-allocate preprocessing buffer (1 * 3 * H * W)
+  // Pre-allocate the preprocessing buffer once (1 × 3 × H × W floats)
   preprocessBuffer_.resize(3 * inputHeight_ * inputWidth_);
 
-  // Pre-compute fused normalization constants:
-  //   normalized = (pixel/255.0 - mean) / std
-  //             = pixel * (1.0 / (255.0 * std)) + (-mean / std)
-  for (int i = 0; i < 3; ++i) {
-    normScale_[i] = 1.0f / (255.0f * STDS[i]);
-    normOffset_[i] = -MEANS[i] / STDS[i];
-  }
-
-  // Perform warmup
+  // Perform a warmup run to initialize GPU resources
   warmup();
 }
 
@@ -43,18 +35,17 @@ void RFDETRModel::preprocess(const cv::Mat &image, cv::Mat &output) {
   cv::Mat resized;
   cv::resize(rgb, resized, cv::Size(inputWidth_, inputHeight_));
 
-  // Use OpenCV's SIMD-optimized convertTo + split, then normalize per-channel
   const int planeSize = inputHeight_ * inputWidth_;
 
-  // Convert uint8 to float32 normalized to [0,1] (SIMD-optimized)
+  // Convert to float in [0, 1]
   cv::Mat floatRgb;
   resized.convertTo(floatRgb, CV_32FC3, 1.0 / 255.0);
 
-  // Split into separate channels
+  // Split into per-channel planes
   cv::Mat channels[3];
   cv::split(floatRgb, channels);
 
-  // Normalize each channel and copy into pre-allocated CHW buffer
+  // Normalize each channel with ImageNet mean/std and copy into CHW buffer
   float *bufPtr = preprocessBuffer_.data();
   for (int c = 0; c < 3; ++c) {
     channels[c] = (channels[c] - MEANS[c]) / STDS[c];
@@ -90,8 +81,10 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
   int numDetections = boxes.rows;
   int numClasses = logits.cols;
 
-  // Fused sigmoid + max-score scan: compute sigmoid only for the max logit
-  // per detection row, avoiding the full N×80 sigmoid computation
+  // Find the highest-scoring class per detection.
+  // Optimization: since sigmoid is monotonic, the max logit equals the max
+  // probability. We find the max logit with a single linear scan per row and
+  // only apply sigmoid to that value, avoiding num_classes sigmoid calls.
   std::vector<float> scores(numDetections);
   std::vector<int> labels(numDetections);
   std::vector<int> indices(numDetections);
@@ -106,7 +99,6 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
         maxIdx = j;
       }
     }
-    // Apply sigmoid only to the max logit (monotonic, so max logit = max prob)
     scores[i] = 1.0f / (1.0f + std::exp(-maxLogit));
     labels[i] = maxIdx;
     indices[i] = i;
@@ -215,10 +207,11 @@ void RFDETRModel::saveDetections(const cv::Mat &image,
   // Create a copy to draw on
   cv::Mat result = image.clone();
 
-  // Generate random colors for each unique label
+  // Generate a random color per unique label.
+  // Note: colors are re-randomized on every call. For consistent per-label
+  // colors across multiple images, seed with a fixed value or use a label hash.
   std::map<int, cv::Scalar> labelColors;
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  std::mt19937 gen(std::random_device{}());
   std::uniform_int_distribution<> dis(0, 255);
 
   for (const auto &det : detections) {
@@ -227,14 +220,10 @@ void RFDETRModel::saveDetections(const cv::Mat &image,
     }
   }
 
-  // Draw masks with transparency if available
-  bool hasMasks = false;
-  for (const auto &det : detections) {
-    if (!det.mask.empty()) {
-      hasMasks = true;
-      break;
-    }
-  }
+  // Draw semi-transparent masks if the model produced segmentation output
+  bool hasMasks =
+      std::any_of(detections.begin(), detections.end(),
+                  [](const Detection &d) { return !d.mask.empty(); });
 
   if (hasMasks) {
     cv::Mat overlay = result.clone();

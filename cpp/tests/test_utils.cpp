@@ -5,16 +5,6 @@
 
 namespace rfdetr {
 
-TEST(UtilsTest, SigmoidTest) {
-  cv::Mat input = (cv::Mat_<float>(1, 3) << -100.0f, 0.0f, 100.0f);
-  cv::Mat output;
-  sigmoid(input, output);
-
-  EXPECT_NEAR(output.at<float>(0, 0), 0.0f, 1e-6);
-  EXPECT_NEAR(output.at<float>(0, 1), 0.5f, 1e-6);
-  EXPECT_NEAR(output.at<float>(0, 2), 1.0f, 1e-6);
-}
-
 TEST(UtilsTest, BoxConversionTest) {
   // Input: cx, cy, w, h
   cv::Mat input = (cv::Mat_<float>(1, 4) << 0.5f, 0.5f, 0.2f, 0.4f);

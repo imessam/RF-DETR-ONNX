@@ -16,3 +16,4 @@
 build/
 .cache/
 .venv/
+site/

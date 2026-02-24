@@ -1,162 +1,203 @@
 # RF-DETR with ONNX
 
-[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Model-yellow)](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/tree/main)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Models-yellow)](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/tree/main)
+[![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://imessam.github.io/RF-DETR-ONNX/)
 
+A modular, production-ready library for running **RF-DETR** object detection and instance segmentation inference with **ONNX Runtime** — in both Python and C++.
 
-This repository is a fork of the original work by [PierreMarieCurie](https://github.com/PierreMarieCurie/rf-detr-onnx), reworked and organized into a modular structure with additional features like manual device selection and performance metrics. Special thanks to [PierreMarieCurie](https://github.com/PierreMarieCurie) for the initial implementation and model conversions.
+This repository is a fork of the original work by [PierreMarieCurie](https://github.com/PierreMarieCurie/rf-detr-onnx), reworked into a modular structure with additional features like manual device selection, performance metrics, and a high-performance C++ library. Special thanks to [PierreMarieCurie](https://github.com/PierreMarieCurie) for the initial implementation and model conversions.
 
-RF-DETR is a transformer-based object detection and instance segmentation architecture developed by Roboflow. For more details on the model, please refer to the impressive work by the Roboflow team [here](https://github.com/roboflow/rf-detr/tree/main).
+RF-DETR is a transformer-based object detection and instance segmentation architecture developed by Roboflow. For more details, see the [RF-DETR repository](https://github.com/roboflow/rf-detr/tree/main).
 
 | Original Image | Torch Reference | ONNX Inference Result |
 |----------------|-----------------|-----------------------|
 | <p align="center"><img src="assets/drone.jpg" width="100%"></p> | <p align="center"><img src="assets/reference_demo.jpg" width="100%"></p> | <p align="center"><img src="assets/detection_demo.jpg" width="100%"></p> |
 
-## Project Structure
+---
 
-The project is organized into four main components:
-
-### 1. [Python Implementation](python/)
-Modular Python implementation for fast prototyping and high-level usage.
-- `python/inference.py`: High-level inference demo script.
-- `python/modules/`: Core logic (model classes, session management).
-- `python/tests/`: Quality assurance and validation tools.
-- `python/run_validation.sh`: Pipeline for model accuracy verification.
-
-### 2. [C++ Implementation](cpp/)
-High-performance, modular library for production deployment.
-- `cpp/include/`: Header files for model, session, and utils.
-- `cpp/src/`: Source code implementation (Zero-copy optimized).
-- `cpp/CMakeLists.txt`: Build configuration.
-
-### 3. [Benchmarks](benchmarks/)
-Automated performance measurement suite.
-- `benchmarks/run_benchmarks.sh`: Master benchmark script (Python & C++).
-- `benchmarks/generate_report.py`: Aggregates JSON results into a Markdown report.
-- `benchmarks/assets/`: Standard images and videos for testing.
-
-### 4. [Tools](tools/)
-Utility scripts for model management and conversion.
-- `tools/export_roboflow.py`: Convert Roboflow checkpoints to ONNX.
-- `tools/export.py`: General ONNX export and simplification utilities.
-
-## Installation
-
-First, clone the repository:
+## Quick Start
 
 ```bash
 git clone https://github.com/imessam/rf-detr-onnx.git
-cd rf-detr-onnx/python
+cd rf-detr-onnx
+uv sync
+uv run python python/inference.py --model models/rf-detr-nano/rf-detr-nano.sim.onnx --image assets/drone.jpg
 ```
 
-### Using uv
-
-First, install [uv](https://docs.astral.sh/uv/) if you haven't already:
-
-- **Lightweight Inference (CPU)**:
-  ```bash
-  uv sync
-  ```
-- **GPU Acceleration**:
-  ```bash
-  uv sync --extra gpu
-  ```
-- **Full Development (Export & Testing)**:
-  ```bash
-  uv sync --extra export --extra test
-  ```
-
-### Using pip
-
-From the repo root:
-
-```bash
-pip install .
-```
-
-Optional extras:
-
-```bash
-pip install ".[export]"
-pip install ".[test]"
-```
-
-CPU-only ONNX Runtime (override GPU dependency):
-
-```bash
-pip uninstall -y onnxruntime-gpu
-pip install onnxruntime
-```
-
-## Validation & Testing
-
-We provide a fully automated validation pipeline that ensures the exported ONNX model matches the original PyTorch model's accuracy.
-
-### Run Full Pipeline
-The master script handles dependency syncing, model preparation, result generation, and accuracy comparison:
-
-```bash
-./run_validation.sh nano
-```
-
-To export your own fine-tuned RF-DETR model to ONNX, use the `export_roboflow.py` script. You'll need the `[export]` extra:
-
-```bash
-uv sync --extra export
-uv run python tools/export_roboflow.py --model-type nano
-```
-
-#### Export Parameters
-| Argument | Type | Default | Description |
-|----------|------|---------|-------------|
-| `--weights` | `str` | **Required** | Path to the `.pth` checkpoint file. |
-| `--model-type` | `str` | `nano` | Architecture type (`nano`, `small`, `base`, `medium`, `large`). |
-| `--output-dir` | `str` | `models/` | Directory for the exported model. |
-| `--opset` | `int` | `17` | ONNX opset version. |
-| `--no-simplify`| `flag`| `False` | Disable model simplification. |
-
-## Inference
-
-### Inference Script
-
-```bash
-# Run on CPU (default)
-uv run python inference.py --model tests/test_models/inference_model.sim.onnx --image ../assets/drone.jpg
-
-# Run on GPU
-uv run python inference.py --model tests/test_models/inference_model.sim.onnx --image ../assets/drone.jpg --device gpu
-```
-
-### Programmatic Usage
+Or, using Python directly:
 
 ```python
 from modules.model import RFDETRModel
 
-# Initialize the model
-model = RFDETRModel("path/to/model.onnx", device="cpu")
+model = RFDETRModel("models/rf-detr-nano/rf-detr-nano.sim.onnx", device="cpu")
+detections, timings = model.predict("assets/drone.jpg")
+model.save_detections("assets/drone.jpg", detections, "output/result.jpg")
+```
 
-# Run inference
+---
+
+## Project Structure
+
+```
+rf-detr-onnx/
+├── python/             # Python implementation
+│   ├── inference.py    # CLI inference demo
+│   └── modules/        # Core library (model, session, utils)
+├── cpp/                # High-performance C++ implementation
+│   ├── include/        # Header files
+│   ├── src/            # Source code
+│   └── CMakeLists.txt  # Build configuration
+├── benchmarks/         # Automated performance benchmarking suite
+├── tools/              # Model export and conversion scripts
+├── tests/              # Validation and quality assurance
+└── assets/             # Demo images
+```
+
+### Components
+
+| Component | Description |
+|-----------|-------------|
+| [python/](python/) | Modular Python library for fast prototyping and high-level use |
+| [cpp/](cpp/) | High-performance C++ library for production deployment |
+| [benchmarks/](benchmarks/) | Automated benchmarking suite (Python & C++, CPU & GPU) |
+| [tools/](tools/) | Export scripts for converting RF-DETR checkpoints to ONNX |
+| [tests/](tests/) | Accuracy validation pipeline against PyTorch reference |
+
+---
+
+## Installation
+
+### Using uv (Recommended)
+
+[uv](https://docs.astral.sh/uv/) is the recommended package manager. Install it first, then:
+
+```bash
+git clone https://github.com/imessam/rf-detr-onnx.git
+cd rf-detr-onnx
+
+# GPU acceleration is the default (onnxruntime-gpu is a base dependency)
+uv sync
+
+# With model export support
+uv sync --extra export
+
+# With test support
+uv sync --extra test
+
+# With documentation tools
+uv sync --extra docs
+```
+
+> **CPU-only:** `onnxruntime-gpu` is installed by default via `uv sync`. If you don't have a GPU,
+> override it after syncing:
+> ```bash
+> uv sync
+> .venv/bin/pip uninstall -y onnxruntime-gpu
+> .venv/bin/pip install onnxruntime
+> ```
+
+### Using pip
+
+```bash
+pip install .
+
+# With optional extras
+pip install ".[export]"   # for model export
+pip install ".[test]"     # for running tests
+```
+
+> **CPU-only:** If you don't have a GPU, replace `onnxruntime-gpu` with `onnxruntime`:
+> ```bash
+> pip uninstall -y onnxruntime-gpu && pip install onnxruntime
+> ```
+
+---
+
+## Inference
+
+### CLI
+
+```bash
+# CPU inference
+uv run python python/inference.py \
+    --model models/rf-detr-nano/rf-detr-nano.sim.onnx \
+    --image assets/drone.jpg \
+    --device cpu
+
+# GPU inference
+uv run python python/inference.py \
+    --model models/rf-detr-nano/rf-detr-nano.sim.onnx \
+    --image assets/drone.jpg \
+    --device gpu
+```
+
+#### CLI Options
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--model` | **Required** | Path to the `.onnx` model file |
+| `--image` | **Required** | Path or URL to the input image |
+| `--output` | `output/output.jpg` | Path to save the annotated output image |
+| `--threshold` | `0.5` | Confidence threshold for filtering detections |
+| `--max_number_boxes` | `300` | Maximum number of boxes to return |
+| `--device` | `gpu` | Device: `gpu` (tries TensorRT → CUDA → CPU) or `cpu` |
+
+### Python API
+
+```python
+from modules.model import RFDETRModel
+
+# Initialize (prefers TensorRT > CUDA > CPU automatically)
+model = RFDETRModel("path/to/model.onnx", device="gpu")
+
+# Run inference on a file path
 detections, timings = model.predict("path/to/image.jpg")
 
-# Visualize results
-model.save_detections("path/to/image.jpg", detections, "output/result.jpg")
+# Or on an OpenCV/NumPy image (BGR)
+import cv2
+image = cv2.imread("path/to/image.jpg")
+detections, timings = model.predict(image, confidence_threshold=0.4)
+
+# Visualize and save
+model.save_detections(image, detections, "output/result.jpg")
+
+# Inspect timing breakdown
+print(f"Preprocess:  {timings['preprocess']:.2f} ms")
+print(f"ORT Run:     {timings['ort_run']:.2f} ms")
+print(f"Postprocess: {timings['postprocess']:.2f} ms")
+print(f"Total:       {timings['total']:.2f} ms")
 ```
+
+---
 
 ## C++ Implementation
 
-The C++ implementation provides a high-performance, modular library for RF-DETR inference.
+The C++ library provides high-performance inference for production deployment.
 
-### Build Instructions
+### Prerequisites
 
-Requires: OpenCV 4.x and ONNX Runtime C++ API.
+Requires: OpenCV 4.x, ONNX Runtime C++ API, and CMake ≥ 3.15.
+
+### Build
 
 ```bash
 cd cpp
 mkdir build && cd build
-cmake ..
+cmake .. -DONNXRUNTIME_ROOT_DIR=/path/to/onnxruntime
 make -j$(nproc)
 ```
 
-### CMake Options
+> **Note:** Set `ONNXRUNTIME_ROOT_DIR` to the root of your ONNX Runtime C++ installation (contains `include/` and `lib/`). Defaults to `/opt/onnxruntime`.
+
+#### CMake Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `ENABLE_EXAMPLES` | `ON` | Build example executables |
+| `ENABLE_BENCHMARKS` | `ON` | Build benchmark executables |
+| `ENABLE_TESTS` | `OFF` | Build test executables |
 
 ```bash
 cmake .. \
@@ -165,89 +206,128 @@ cmake .. \
   -DENABLE_TESTS=OFF
 ```
 
-### Using The C++ Library
-
-Build and install the static library and headers:
+### Run
 
 ```bash
-cd cpp
-mkdir build && cd build
-cmake ..
+# Image inference
+./rfdetr_image_inference \
+    --model ../../models/rf-detr-nano/rf-detr-nano.sim.onnx \
+    --image ../../assets/drone.jpg \
+    --device gpu
+
+# Video inference
+./rfdetr_video_inference \
+    --model ../../models/rf-detr-nano/rf-detr-nano.sim.onnx \
+    --video ../../assets/sample.mp4 \
+    --device gpu
+```
+
+### Install as Library
+
+```bash
+cd cpp && mkdir build && cd build
+cmake .. -DONNXRUNTIME_ROOT_DIR=/path/to/onnxruntime
 make -j$(nproc)
 cmake --install .
 ```
 
-This installs:
-- `librfdetr_onnx.a` into your CMake install prefix `lib/`
-- Headers into `include/`
-
-Consume it via CMake:
+This installs `librfdetr_onnx.a` and headers into your CMake install prefix. Consume via CMake:
 
 ```cmake
 find_package(rfdetr_onnx REQUIRED)
-
 add_executable(my_app main.cpp)
 target_link_libraries(my_app PRIVATE rfdetr_onnx::rfdetr_onnx)
 ```
 
-### Optimization: Zero-Copy Inference
+---
 
-The C++ implementation is optimized for high-throughput inference by using **zero-copy output handling**. Instead of copying inference results from ONNX Runtime memory, the `OnnxRuntimeSession` wraps the raw output tensors directly into `cv::Mat` objects. This significantly reduces CPU overhead, especially when working with high-resolution segmentation masks.
+## Validation & Testing
 
-### Usage
-
-```bash
-./rfdetr_image_inference \
-    --model ../models/rf-detr-nano/rf-detr-nano.sim.onnx \
-    --image ../assets/drone.jpg \
-    --device gpu
-```
+A fully automated pipeline verifies that the exported ONNX model matches the original PyTorch model's accuracy.
 
 ```bash
-./rfdetr_video_inference \
-    --model ../models/rf-detr-nano/rf-detr-nano.sim.onnx \
-    --video ../assets/sample.mp4 \
-    --device gpu
+# Run full validation pipeline (GPU)
+bash tests/run_tests.sh -d gpu
+
+# Run on CPU
+bash tests/run_tests.sh -d cpu
 ```
 
-## Performance Comparison
+### Export Your Own Model
 
-Inference performance measured on **RF-DETR Nano** (384x384) using a laptop with **CUDA Acceleration** (RTX 40-series) and a modern multi-core CPU.
+```bash
+uv sync --extra export
+uv run python tools/export_roboflow.py \
+    --weights path/to/rf-detr-nano.pth \
+    --model-type nano
+```
+
+#### Export Parameters
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--weights` | **Required** | Path to the `.pth` checkpoint file |
+| `--model-type` | **Required** | Architecture: `nano`, `small`, `base`, `medium`, `large` |
+| `--output-dir` | `models/` | Directory to save the exported model (output placed in `<dir>/<checkpoint-stem>/`) |
+| `--opset` | `17` | ONNX opset version |
+| `--no-simplify` | `False` | Disable model simplification |
+
+---
 
 ## Benchmarking
 
-Performance results and automated benchmarking tools are available in the [benchmarks/](benchmarks/) directory. The suite evaluates both Python and C++ implementations across CPU and GPU providers.
+The benchmarking suite evaluates both Python and C++ implementations across CPU and GPU providers.
 
-### Running Benchmarks
-
-1. **Prepare Models**: Ensure your `.onnx` models are in `models/` (any subfolder is OK).
-2. **Execute Suite**:
-   ```bash
-   cd benchmarks
-   ./run_benchmarks.sh -n 10 -v
-   ```
+```bash
+cd benchmarks
+./run_benchmarks.sh -n 10 -v
+```
 
 #### Options
+
 | Option | Default | Description |
 |--------|---------|-------------|
 | `-n <int>` | `10` | Number of benchmark iterations. |
-| `-c <float>`| `2.0`| Cooldown period (seconds) between runs. |
+| `-c <float>` | `2.0` | Cooldown period (seconds) between runs. |
+| `-s <float>` | `0.1` | Sleep delay between per-image iterations. |
 | `-v` | `Off` | Enable verbose per-iteration logging. |
 | `-u <url>` | `https://github.com/imessam/RF-DETR-ONNX/releases/download/models/onnx.zip` | URL to download ONNX models if none are found. |
 
-The script will build the C++ components, run inference across all discovered models, and generate a detailed report in `benchmarks/results/results.md`.
+Results are saved to `benchmarks/results/results.md`.
 
+---
+
+## Documentation
+
+Full documentation is available at: **[imessam.github.io/RF-DETR-ONNX](https://imessam.github.io/RF-DETR-ONNX/)** *(or build locally — see below)*.
+
+```bash
+# Install docs dependencies
+uv sync --extra docs
+
+# Serve locally
+mkdocs serve
+# Open http://127.0.0.1:8000
+```
+
+---
 
 ## License
 
-This repository is licensed under the MIT License. See [LICENSE](LICENSE) for more details.
+This repository is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
 
-However, some parts of the code are derived from Roboflow software. Below are the details:
+Parts of this code are derived from Roboflow software:
 
-- **Apache License 2.0** ([reference](https://www.apache.org/licenses/LICENSE-2.0)): RF-DETR models and pretrained weights (except `rfdetr-xlarge` and `rfdetr-2xlarge`) and all `rfdetr` Python package.
-- **Platform Model License 1.0 (PML-1.0)** ([reference](https://roboflow.com/platform-model-license-1-0)): `rfdetr-xlarge` and `rfdetr-2xlarge` models and pretrained weights.
+| License | Applies To |
+|---------|-----------|
+| [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) | RF-DETR models/weights (except xlarge/2xlarge) and the `rfdetr` Python package |
+| [Platform Model License 1.0](https://roboflow.com/platform-model-license-1-0) | `rfdetr-xlarge` and `rfdetr-2xlarge` models and weights |
 
-More information about Roboflow model licensing [here](https://roboflow.com/licensing).
+More information: [roboflow.com/licensing](https://roboflow.com/licensing)
+
+---
 
 ## Acknowledgements
-- Thanks to the **Roboflow** team and everyone involved in the development of RF-DETR, particularly for sharing a state-of-the-art model under a permissive free software license.
+
+- [Roboflow](https://roboflow.com) team for developing RF-DETR and sharing it under a permissive license.
+- [PierreMarieCurie](https://github.com/PierreMarieCurie) for the initial ONNX implementation and model conversions.

@@ -1,5 +1,6 @@
 # RF-DETR with ONNX
 
+[![CI](https://github.com/imessam/RF-DETR-ONNX/actions/workflows/ci.yml/badge.svg)](https://github.com/imessam/RF-DETR-ONNX/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Models-yellow)](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/tree/main)

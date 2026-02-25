@@ -68,12 +68,6 @@ private:
   std::string activeProvider_;
   std::vector<std::string> outputNames_; // Output names: boxes, scores, [masks]
   size_t numOutputs_;
-
-  // Cached for performance: avoid rebuilding const char** array on every run()
-  std::vector<const char *> cachedOutputNamesPtr_;
-
-  // Kept alive so that cv::Mat views returned by run() remain valid
-  std::vector<Ort::Value> lastOutputTensors_;
 };
 
 } // namespace rfdetr

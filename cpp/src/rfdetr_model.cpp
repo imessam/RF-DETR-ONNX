@@ -37,7 +37,7 @@ void RFDETRModel::preprocess(const cv::Mat &image, cv::Mat &output) {
 
   const int planeSize = inputHeight_ * inputWidth_;
 
-  // Convert to float in [0, 1]
+  // Scale pixel values from [0, 255] to [0.0, 1.0] for model compatibility.
   cv::Mat floatRgb;
   resized.convertTo(floatRgb, CV_32FC3, 1.0 / 255.0);
 
@@ -45,7 +45,10 @@ void RFDETRModel::preprocess(const cv::Mat &image, cv::Mat &output) {
   cv::Mat channels[3];
   cv::split(floatRgb, channels);
 
-  // Normalize each channel with ImageNet mean/std and copy into CHW buffer
+  // Normalize using ImageNet statistics (Mean/StdDev) to match training
+  // distribution. Then transform memory layout from HWC (OpenCV style) to CHW
+  // (ONNX style). memcpy copies each color plane (R, G, B) into a single,
+  // contiguous memory row.
   float *bufPtr = preprocessBuffer_.data();
   for (int c = 0; c < 3; ++c) {
     channels[c] = (channels[c] - MEANS[c]) / STDS[c];
@@ -53,7 +56,8 @@ void RFDETRModel::preprocess(const cv::Mat &image, cv::Mat &output) {
                 planeSize * sizeof(float));
   }
 
-  // Wrap buffer as cv::Mat (no copy, shares data with preprocessBuffer_)
+  // Wrap buffer as cv::Mat with 4 dimensions: [Batch, Channels, Height, Width].
+  // Note: Batch size is 1 as we process one image at a time.
   int dims[] = {1, 3, inputHeight_, inputWidth_};
   output = cv::Mat(4, dims, CV_32F, preprocessBuffer_.data());
 }

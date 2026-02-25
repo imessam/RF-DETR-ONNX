@@ -8,6 +8,9 @@ OnnxRuntimeSession::OnnxRuntimeSession(const std::string &modelPath,
                                        const std::string &device)
     : env_(ORT_LOGGING_LEVEL_WARNING, "RFDETRModel"),
       memoryInfo_(
+          // Descriptor for memory location. Creates CPU RAM info with an Arena
+          // allocator. Arena pre-allocates a large pool to speed up internal
+          // model operations.
           Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault)) {
 
   auto providers = getBestProviders(device);
@@ -51,7 +54,9 @@ OnnxRuntimeSession::OnnxRuntimeSession(const std::string &modelPath,
   }
 
   try {
-    // Get input information
+    // Use an Allocator to coordinate memory ownership between C++ and the ONNX
+    // library. Ort::AllocatorWithDefaultOptions ensures automatic RAII cleanup
+    // for metadata strings.
     Ort::AllocatorWithDefaultOptions allocator;
     auto inputNameAllocated = session_->GetInputNameAllocated(0, allocator);
     inputName_ = inputNameAllocated.get();
@@ -60,14 +65,12 @@ OnnxRuntimeSession::OnnxRuntimeSession(const std::string &modelPath,
     auto tensorInfo = inputTypeInfo.GetTensorTypeAndShapeInfo();
     inputShape_ = tensorInfo.GetShape();
 
-    // Get output names and cache raw pointers (ONNX API requires const char**)
+    // Get output names
     numOutputs_ = session_->GetOutputCount();
     outputNames_.resize(numOutputs_);
-    cachedOutputNamesPtr_.resize(numOutputs_);
     for (size_t i = 0; i < numOutputs_; ++i) {
       auto outputNameAllocated = session_->GetOutputNameAllocated(i, allocator);
       outputNames_[i] = outputNameAllocated.get();
-      cachedOutputNamesPtr_[i] = outputNames_[i].c_str();
     }
 
     std::cout << "Input shape: [";
@@ -103,10 +106,14 @@ void OnnxRuntimeSession::warmup() {
         memoryInfo_, dummyData.data(), dummyData.size(), inputShape_.data(),
         inputShape_.size());
 
-    const char *inputNames[] = {inputName_.c_str()};
+    std::vector<const char *> inputNames = {inputName_.c_str()};
+    std::vector<const char *> outputNames;
+    for (const auto &name : outputNames_) {
+      outputNames.push_back(name.c_str());
+    }
 
-    session_->Run(Ort::RunOptions{nullptr}, inputNames, &dummyTensor, 1,
-                  cachedOutputNamesPtr_.data(), numOutputs_);
+    session_->Run(Ort::RunOptions{nullptr}, inputNames.data(), &dummyTensor, 1,
+                  outputNames.data(), numOutputs_);
 
     std::cout << "--- ONNX Runtime: Warmup complete ---" << std::endl;
   }
@@ -120,12 +127,15 @@ void OnnxRuntimeSession::run(const cv::Mat &inputData,
 
   // Create ONNX tensor from OpenCV Mat
   std::vector<int64_t> inputTensorShape = {
-      1,
+      1,             // batch size
       input.size[1], // channels
       input.size[2], // height
       input.size[3]  // width
   };
 
+  // Wraps external memory (cv::Mat) as an ONNX tensor.
+  // memoryInfo_ tells ORT that 'input.ptr' resides in CPU RAM, enabling
+  // zero-copy.
   Ort::Value inputTensor = Ort::Value::CreateTensor<float>(
       memoryInfo_, const_cast<float *>(input.ptr<float>()), input.total(),
       inputTensorShape.data(), inputTensorShape.size());
@@ -133,28 +143,36 @@ void OnnxRuntimeSession::run(const cv::Mat &inputData,
   // Prepare input names
   const char *inputNames[] = {inputName_.c_str()};
 
-  // Run inference
-  lastOutputTensors_ =
-      session_->Run(Ort::RunOptions{nullptr}, inputNames, &inputTensor, 1,
-                    cachedOutputNamesPtr_.data(), numOutputs_);
+  // Prepare output names
+  std::vector<const char *> outputNames;
+  for (const auto &name : outputNames_) {
+    outputNames.push_back(name.c_str());
+  }
 
-  // Wrap each output tensor as a cv::Mat pointing into ORT-managed memory.
-  // lastOutputTensors_ keeps the tensors alive so the pointers stay valid.
+  // Run inference
+  auto outputTensors =
+      session_->Run(Ort::RunOptions{nullptr}, inputNames, &inputTensor, 1,
+                    outputNames.data(), numOutputs_);
+
+  // Convert each output tensor to a cv::Mat that owns its data.
   outputs.clear();
   outputs.reserve(numOutputs_);
 
-  for (size_t i = 0; i < lastOutputTensors_.size(); ++i) {
-    auto tensorInfo = lastOutputTensors_[i].GetTensorTypeAndShapeInfo();
+  for (size_t i = 0; i < outputTensors.size(); ++i) {
+    auto tensorInfo = outputTensors[i].GetTensorTypeAndShapeInfo();
     auto shape = tensorInfo.GetShape();
 
-    float *tensorData = lastOutputTensors_[i].GetTensorMutableData<float>();
+    float *tensorData = outputTensors[i].GetTensorMutableData<float>();
 
     // ONNX shape is int64; cv::Mat dims require int
     std::vector<int> cvShape;
     for (auto dim : shape)
       cvShape.push_back(static_cast<int>(dim));
 
-    outputs.emplace_back(cvShape, CV_32F, tensorData);
+    // Create a view and then clone it to take ownership and ensure thread
+    // safety. Cloning ensures the cv::Mat owns its buffer, allowing the model's
+    // internal outputTensors to be safely destroyed.
+    outputs.push_back(cv::Mat(cvShape, CV_32F, tensorData).clone());
   }
 }
 

@@ -37,12 +37,25 @@ cd benchmarks
 
 Results are saved to `benchmarks/results/results.md`. The report shows:
 
+- **System Information** — CPU, RAM, and GPU specifications
 - Model name and architecture
+- Implementation (Python / C++)
 - Provider used (TensorRT / CUDA / CPU)
 - Preprocess / ORT run / postprocess timings
 - Average FPS
 
-### Sample (RF-DETR Nano, 384×384)
+### Sample System Information
+
+The report begins with a table of your hardware specs:
+
+| Component | Details |
+| :--- | :--- |
+| **CPU** | AMD Ryzen 5 7600 6-Core Processor |
+| **CPU Cores / Threads** | 6 cores / 12 threads |
+| **RAM** | 7.3 GB |
+| **GPU** | NVIDIA GeForce RTX 4060 (8.0 GB VRAM, driver 591.74) |
+
+### Sample Results (RF-DETR Nano, 384×384)
 
 | Provider | Preprocess (ms) | ORT Run (ms) | Postprocess (ms) | FPS |
 |----------|----------------|--------------|-----------------|-----|

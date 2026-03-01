@@ -8,10 +8,171 @@ comparing Python and C++ implementations across different devices.
 
 import json
 import os
+import platform
+import re
+import shutil
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
+
+
+def get_system_info() -> Dict[str, str]:
+    """Collect CPU, RAM, and GPU specifications of the current machine.
+
+    Returns:
+        Dictionary with keys: cpu_model, cpu_cores, cpu_threads, ram_gb, gpu.
+    """
+    info: Dict[str, str] = {}
+
+    # --- CPU ---
+    cpu_model = platform.processor() or "Unknown"
+
+    # On Linux, /proc/cpuinfo has a richer model name
+    if sys.platform.startswith("linux"):
+        try:
+            with open("/proc/cpuinfo") as f:
+                for line in f:
+                    if line.lower().startswith("model name"):
+                        cpu_model = line.split(":", 1)[1].strip()
+                        break
+        except OSError:
+            pass
+    elif sys.platform == "darwin":
+        try:
+            result = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                cpu_model = result.stdout.strip()
+        except Exception:
+            pass
+
+    # Normalize excessive whitespace
+    cpu_model = re.sub(r"\s+", " ", cpu_model)
+    info["cpu_model"] = cpu_model
+    info["cpu_cores"] = str(os.cpu_count() or "?")
+
+    # Logical vs physical on Linux
+    physical_cores = info["cpu_cores"]
+    if sys.platform.startswith("linux"):
+        try:
+            result = subprocess.run(
+                ["nproc", "--all"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                info["cpu_threads"] = result.stdout.strip()
+            else:
+                info["cpu_threads"] = info["cpu_cores"]
+        except Exception:
+            info["cpu_threads"] = info["cpu_cores"]
+    else:
+        info["cpu_threads"] = info["cpu_cores"]
+
+    # Physical cores (Linux)
+    if sys.platform.startswith("linux"):
+        try:
+            result = subprocess.run(
+                ["grep", "-c", "^cpu cores", "/proc/cpuinfo"],
+                capture_output=True, text=True, timeout=5
+            )
+            # grep -c counts matching lines; each physical CPU reports once
+            # so we read the first 'cpu cores' value instead
+            with open("/proc/cpuinfo") as f:
+                for line in f:
+                    if line.lower().startswith("cpu cores"):
+                        physical_cores = line.split(":", 1)[1].strip()
+                        break
+        except Exception:
+            pass
+    info["cpu_cores"] = physical_cores
+
+    # --- RAM ---
+    ram_gb = "Unknown"
+    if sys.platform.startswith("linux"):
+        try:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemTotal:"):
+                        kb = int(line.split()[1])
+                        ram_gb = f"{kb / 1024 / 1024:.1f} GB"
+                        break
+        except OSError:
+            pass
+    elif sys.platform == "darwin":
+        try:
+            result = subprocess.run(
+                ["sysctl", "-n", "hw.memsize"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                ram_gb = f"{int(result.stdout.strip()) / 1024**3:.1f} GB"
+        except Exception:
+            pass
+    info["ram_gb"] = ram_gb
+
+    # --- GPU ---
+    gpu = "Not detected"
+    if shutil.which("nvidia-smi"):
+        try:
+            result = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=name,memory.total,driver_version",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                gpus = []
+                for line in result.stdout.strip().splitlines():
+                    parts = [p.strip() for p in line.split(",")]
+                    if len(parts) == 3:
+                        name, vram_mib, driver = parts
+                        vram_gb = f"{int(vram_mib) / 1024:.1f} GB"
+                        gpus.append(f"{name} ({vram_gb} VRAM, driver {driver})")
+                if gpus:
+                    gpu = "; ".join(gpus)
+        except Exception:
+            pass
+    elif shutil.which("rocm-smi"):
+        try:
+            result = subprocess.run(
+                ["rocm-smi", "--showproductname"],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                gpu = result.stdout.strip().splitlines()[-1].strip()
+        except Exception:
+            pass
+    info["gpu"] = gpu
+
+    return info
+
+
+def generate_system_section(system_info: Dict[str, str]) -> str:
+    """Format system information as a markdown section.
+
+    Args:
+        system_info: Dictionary returned by :func:`get_system_info`.
+
+    Returns:
+        Markdown formatted string.
+    """
+    lines = [
+        "## System Information\n",
+        f"| Component | Details |",
+        f"| :--- | :--- |",
+        f"| **CPU** | {system_info.get('cpu_model', 'Unknown')} |",
+        f"| **CPU Cores / Threads** | {system_info.get('cpu_cores', '?')} cores / {system_info.get('cpu_threads', '?')} threads |",
+        f"| **RAM** | {system_info.get('ram_gb', 'Unknown')} |",
+        f"| **GPU** | {system_info.get('gpu', 'Not detected')} |",
+        "",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def load_benchmark_results(results_dir: str) -> Dict[str, Dict]:
@@ -236,16 +397,24 @@ def generate_report(results_dir: str = "results", output_file: str = "results.md
         print("No benchmark results found. Cannot generate report.", file=sys.stderr)
         sys.exit(1)
     
+    # Collect system information
+    system_info = get_system_info()
+
     # Start building the markdown report
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     markdown = f"# RF-DETR ONNX Benchmark Results\n\n"
     markdown += f"**Generated:** {timestamp}\n\n"
-    
+
+    # Add system information section
+    markdown += generate_system_section(system_info)
+
+    # Add separator
+    markdown += "---\n\n"
+
     # Add summary section
     markdown += generate_summary_section(results)
     
-    # Add separator
-    markdown += "---\n\n"
+    # Add separator between summary and model tables
     
     # Extract models and test types
     models = extract_models(results)

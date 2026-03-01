@@ -294,7 +294,35 @@ cd benchmarks
 | `-v` | `Off` | Enable verbose per-iteration logging. |
 | `-u <url>` | `https://github.com/imessam/RF-DETR-ONNX/releases/download/models/onnx.zip` | URL to download ONNX models if none are found. |
 
-Results are saved to `benchmarks/results/results.md`.
+Results are saved to `benchmarks/results/results.md`. 
+
+### Latest Benchmark Results
+
+**Tested on:**
+| Component | Details |
+| :--- | :--- |
+| **CPU** | AMD Ryzen 5 7600 6-Core Processor |
+| **CPU Cores / Threads** | 6 cores / 12 threads |
+| **RAM** | 7.3 GB |
+| **GPU** | NVIDIA GeForce RTX 4060 (8.0 GB VRAM, driver 591.74) |
+
+#### Model: RF-DETR Nano (384×384)
+| Implementation | Device | Preprocess | ORT Run | Postprocess | Total | FPS |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
+| Python | CPU | 2.21 ms | 67.31 ms | 0.37 ms | 69.86 ms | 14.31 |
+| Python | GPU | 1.65 ms | 7.83 ms | 0.17 ms | 9.62 ms | 103.93 |
+| C++ | CPU | 0.77 ms | 56.15 ms | 0.13 ms | 58.17 ms | 17.19 |
+| C++ | GPU | **0.61 ms** | **7.82 ms** | **0.09 ms** | **8.47 ms** | **118.01** 🚀 |
+
+#### Model: RF-DETR Small (512×512)
+| Implementation | Device | Preprocess | ORT Run | Postprocess | Total | FPS |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
+| Python | CPU | 2.77 ms | 117.45 ms | 0.29 ms | 120.53 ms | 8.30 |
+| Python | GPU | 4.06 ms | 31.79 ms | 0.18 ms | 36.17 ms | 27.65 |
+| C++ | CPU | 0.98 ms | 119.17 ms | 0.13 ms | 120.22 ms | 8.32 |
+| C++ | GPU | **0.94 ms** | **12.79 ms** | **0.09 ms** | **13.74 ms** | **72.80** 🚀 |
+
+*Note: Best performance values are **highlighted in bold**.*
 
 ---
 

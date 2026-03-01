@@ -1,6 +1,17 @@
 # RF-DETR ONNX Benchmark Results
 
-**Generated:** 2026-02-22 23:14:20
+**Generated:** 2026-03-01 22:14:55
+
+## System Information
+
+| Component | Details |
+| :--- | :--- |
+| **CPU** | AMD Ryzen 5 7600 6-Core Processor |
+| **CPU Cores / Threads** | 6 cores / 12 threads |
+| **RAM** | 7.3 GB |
+| **GPU** | NVIDIA GeForce RTX 4060 (8.0 GB VRAM, driver 591.74) |
+
+---
 
 ## Summary
 
@@ -12,18 +23,16 @@
 
 - **Iterations per benchmark:** 10
 
----
-
 ## Model: rf-detr-nanol.sim
 
 ### Images
 
 | Implementation | Device | Preprocess (ms) | ORT Run (ms) | Postprocess (ms) | Total (ms) | FPS |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: |
-| Python | CPU | 1.73 | 63.52 | 0.31 | 65.49 | 15.27 |
-| Python | GPU | 1.55 | **7.91** | 0.17 | 9.68 | 103.28 |
-| C++ | CPU | **0.73** | 68.76 | 0.13 | 69.83 | 14.32 |
-| C++ | GPU | 0.74 | 8.30 | **0.09** | **9.16** | **109.23** 🚀 |
+| Python | CPU | 2.21 | 67.31 | 0.37 | 69.86 | 14.31 |
+| Python | GPU | 1.65 | 7.83 | 0.17 | 9.62 | 103.93 |
+| C++ | CPU | 0.77 | 56.15 | 0.13 | 58.17 | 17.19 |
+| C++ | GPU | **0.61** | **7.82** | **0.09** | **8.47** | **118.01** 🚀 |
 
 ---
 
@@ -33,10 +42,10 @@
 
 | Implementation | Device | Preprocess (ms) | ORT Run (ms) | Postprocess (ms) | Total (ms) | FPS |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: |
-| Python | CPU | 3.00 | 129.19 | 0.32 | 132.37 | 7.55 |
-| Python | GPU | 5.08 | 31.03 | 0.27 | 35.87 | 27.88 |
-| C++ | CPU | **1.20** | 140.89 | 0.14 | 142.28 | 7.03 |
-| C++ | GPU | 1.22 | **11.52** | **0.09** | **12.84** | **77.89** 🚀 |
+| Python | CPU | 2.77 | 117.45 | 0.29 | 120.53 | 8.30 |
+| Python | GPU | 4.06 | 31.79 | 0.18 | 36.17 | 27.65 |
+| C++ | CPU | 0.98 | 119.17 | 0.13 | 120.22 | 8.32 |
+| C++ | GPU | **0.94** | **12.79** | **0.09** | **13.74** | **72.80** 🚀 |
 
 ---
 

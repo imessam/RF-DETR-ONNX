@@ -26,7 +26,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Install dependencies
-        run: uv pip install --system "mkdocs>=1.6.0,<2.0" "mkdocs-material>=9.5.0" "mkdocstrings[python]>=0.25.0"
+        run: uv pip install --system "mkdocs==1.6.1" "mkdocs-material>=9.5.0" "mkdocstrings[python]>=0.25.0"
       - name: Build docs
         run: mkdocs build
       - name: Upload artifact

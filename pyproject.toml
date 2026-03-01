@@ -25,7 +25,7 @@ export = ["rfdetr", "rfdetr[onnxexport]"]
 test = ["pytest>=9.0.2", "rfdetr"]
 
 docs = [
-    "mkdocs>=1.6.0,<2.0",
+    "mkdocs==1.6.1",
     "mkdocs-material>=9.5.0",
     "mkdocstrings[python]>=0.25.0",
 ]

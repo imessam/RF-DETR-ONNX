@@ -67,7 +67,7 @@ def convert_to_fp16(
         raise ValueError(f"Expected an .onnx file, got: {input_path}")
 
     if output_path is None:
-        output_path = input_path.parent / f"{input_path.stem}_fp16.onnx"
+        output_path = input_path.parent / f"{input_path.stem}{'_keep_io_types' if keep_io_types else ''}_fp16.onnx"
     else:
         output_path = Path(output_path)
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         default=None,
         help=(
             "Path for the output ONNX model. "
-            "Defaults to '<input_stem>_fp16.onnx' (or '_mixed_fp16.onnx' for mixed mode)."
+            "Defaults to '<input_stem>_fp16.onnx' (or '_mixed_fp16.onnx' for mixed mode or '_keep_io_types_fp16.onnx' for keep_io_types)."
         ),
     )
     parser.add_argument(

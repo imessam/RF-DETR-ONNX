@@ -273,6 +273,20 @@ uv run python tools/export_roboflow.py \
 | `--opset` | `17` | ONNX opset version |
 | `--no-simplify` | `False` | Disable model simplification |
 
+#### FP16 Conversion
+
+Highly recommended for GPU inference to reduce model size and improve throughput.
+
+```bash
+uv run python tools/export_fp16.py \
+    --input models/rf-detr-nano.onnx \
+    --keep-io-types
+```
+
+For more details, see the **[Tools Documentation](https://imessam.github.io/RF-DETR-ONNX/tools/)**.
+
+---
+
 ---
 
 ## Benchmarking

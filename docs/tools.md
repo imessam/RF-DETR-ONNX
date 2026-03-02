@@ -116,6 +116,60 @@ cmake .. -DONNXRUNTIME_ROOT_DIR=$(pwd)/libs/onnx/onnxruntime-linux-x64-1.21.0
 
 ---
 
+## `export_fp16.py`
+
+Convert an existing ONNX model to **FP16 (float16)** or **mixed-precision**. This is highly recommended for GPU inference to reduce model size by 50% and improve throughput.
+
+### Requirements
+
+Install the `export` extra:
+
+```bash
+uv sync --extra export
+# or 
+pip install ".[export]"
+```
+
+### Usage
+
+**Full FP16 Conversion:**
+
+```bash
+uv run python tools/export_fp16.py \
+    --input models/rf-detr-nano.onnx \
+    --output models/rf-detr-nano_fp16.onnx \
+    --keep-io-types
+```
+
+**Mixed-Precision (GPU only):**
+
+```bash
+uv run python tools/export_fp16.py \
+    --input models/rf-detr-nano.onnx \
+    --mixed-precision \
+    --sample-input sample_input.npy \
+    --keep-io-types
+```
+
+### Parameters
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--input` | **Required** | Path to the input `.onnx` model |
+| `--output` | *(input_stem)_fp16.onnx* | Path for the output ONNX model |
+| `--keep-io-types` | `False` | Keep model inputs/outputs as float32 (recommended) |
+| `--mixed-precision` | `False` | Use auto mixed-precision (requires GPU + `--sample-input`) |
+| `--sample-input` | `None` | Path to a `.npy` file with sample input (for mixed-precision) |
+| `--op-block-list` | `DEFAULT` | List of op types to leave as float32 |
+| `--node-block-list` | `None` | List of node names to leave as float32 |
+
+!!! tip "Why use FP16?"
+    FP16 models are half the size and offer significantly faster inference on modern GPUs (TensorRT, CUDA). Use `--keep-io-types` to ensure the model interface remains `float32` for easier integration with existing preprocessing pipelines.
+
+---
+
+---
+
 ## Supported Model Types
 
 | Type | Parameters | Input Size | Notes |

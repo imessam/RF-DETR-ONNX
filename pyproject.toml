@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-export = ["rfdetr", "rfdetr[onnxexport]"]
+export = ["rfdetr", "rfdetr[onnxexport]", "onnxconverter-common"]
 
 test = ["pytest>=9.0.2", "rfdetr"]
 

@@ -17,6 +17,7 @@ Developed as a fork of [PierreMarieCurie/rf-detr-onnx](https://github.com/Pierre
 - 📊 **Detailed timing breakdown** — preprocess, inference, postprocess
 - 🔧 **Optimized C++ implementation** — high-performance library for production deployment
 - 🎯 **Instance segmentation** — supports models with mask outputs
+- 🏎️ **FP16 & mixed-precision support** — convert models to float16 for ~2× GPU speedup and half the memory footprint
 - 📦 **Modular library** — install as a static C++ library or Python package
 
 ---

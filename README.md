@@ -6,7 +6,7 @@
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-Models-yellow)](https://huggingface.co/PierreMarieCurie/rf-detr-onnx/tree/main)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://imessam.github.io/RF-DETR-ONNX/)
 
-A modular, production-ready library for running **RF-DETR** object detection and instance segmentation inference with **ONNX Runtime** — in both Python and C++.
+A modular, production-ready library for running **RF-DETR** object detection and instance segmentation inference with **ONNX Runtime** — in both Python and C++. Supports **FP32 and FP16 (float16)** precision for optimal GPU performance.
 
 This repository is a fork of the original work by [PierreMarieCurie](https://github.com/PierreMarieCurie/rf-detr-onnx), reworked into a modular structure with additional features like manual device selection, performance metrics, and a high-performance C++ library. Special thanks to [PierreMarieCurie](https://github.com/PierreMarieCurie) for the initial implementation and model conversions.
 
@@ -132,7 +132,15 @@ uv run python python/inference.py \
     --model models/rf-detr-nano/rf-detr-nano.sim.onnx \
     --image assets/drone.jpg \
     --device gpu
+
+# GPU inference with FP16 model (faster, less VRAM)
+uv run python python/inference.py \
+    --model models/rf-detr-nano/rf-detr-nano_fp16.onnx \
+    --image assets/drone.jpg \
+    --device gpu
 ```
+
+> **FP16 tip:** First convert your model with `tools/export_fp16.py` — see [FP16 Conversion](#fp16-conversion) below.
 
 #### CLI Options
 

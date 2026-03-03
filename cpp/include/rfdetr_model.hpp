@@ -101,9 +101,6 @@ private:
   int inputHeight_;
   int inputWidth_;
 
-  // Pre-allocated buffer for preprocessing output (avoids allocation per call)
-  std::vector<float> preprocessBuffer_;
-
   static constexpr float MEANS[3] = {0.485f, 0.456f, 0.406f};
   static constexpr float STDS[3] = {0.229f, 0.224f, 0.225f};
 };

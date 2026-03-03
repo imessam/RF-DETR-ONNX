@@ -4,9 +4,9 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 
-void printUsage(const char *programName) {
+void print_usage(const char *program_name) {
   std::cout
-      << "Usage: " << programName << " [OPTIONS]\n"
+      << "Usage: " << program_name << " [OPTIONS]\n"
       << "Run image inference with a RF-DETR ONNX model.\n\n"
       << "Required arguments:\n"
       << "  --model PATH        Path to the ONNX model file\n"
@@ -21,30 +21,30 @@ void printUsage(const char *programName) {
 }
 
 struct Args {
-  std::string modelPath;
-  std::string imagePath;
-  std::string outputPath = "../output/output.jpg";
+  std::string model_path;
+  std::string image_path;
+  std::string output_path = "../output/output.jpg";
   float threshold = rfdetr::DEFAULT_CONFIDENCE_THRESHOLD;
-  int maxBoxes = rfdetr::DEFAULT_MAX_NUMBER_BOXES;
+  int max_boxes = rfdetr::DEFAULT_MAX_NUMBER_BOXES;
   std::string device = "gpu";
 };
 
-bool parseArgs(int argc, char **argv, Args &args) {
+bool parse_args(int argc, char **argv, Args &args) {
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
 
     if (arg == "--help" || arg == "-h") {
       return false;
     } else if (arg == "--model" && i + 1 < argc) {
-      args.modelPath = argv[++i];
+      args.model_path = argv[++i];
     } else if (arg == "--image" && i + 1 < argc) {
-      args.imagePath = argv[++i];
+      args.image_path = argv[++i];
     } else if (arg == "--output" && i + 1 < argc) {
-      args.outputPath = argv[++i];
+      args.output_path = argv[++i];
     } else if (arg == "--threshold" && i + 1 < argc) {
       args.threshold = std::stof(argv[++i]);
     } else if (arg == "--max_boxes" && i + 1 < argc) {
-      args.maxBoxes = std::stoi(argv[++i]);
+      args.max_boxes = std::stoi(argv[++i]);
     } else if (arg == "--device" && i + 1 < argc) {
       args.device = argv[++i];
     } else {
@@ -53,11 +53,11 @@ bool parseArgs(int argc, char **argv, Args &args) {
     }
   }
 
-  if (args.modelPath.empty()) {
+  if (args.model_path.empty()) {
     std::cerr << "Error: --model is required\n";
     return false;
   }
-  if (args.imagePath.empty()) {
+  if (args.image_path.empty()) {
     std::cerr << "Error: --image is required\n";
     return false;
   }
@@ -68,39 +68,39 @@ bool parseArgs(int argc, char **argv, Args &args) {
 int main(int argc, char **argv) {
   Args args;
 
-  if (!parseArgs(argc, argv, args)) {
-    printUsage(argv[0]);
-    return args.modelPath.empty() ? 1 : 0;
+  if (!parse_args(argc, argv, args)) {
+    print_usage(argv[0]);
+    return args.model_path.empty() ? 1 : 0;
   }
 
   try {
     std::cout << "Initializing RF-DETR model..." << std::endl;
-    rfdetr::RFDETRModel model(args.modelPath, args.device);
+    rfdetr::RFDETRModel model(args.model_path, args.device);
 
-    std::cout << "Loading image: " << args.imagePath << std::endl;
-    cv::Mat image = cv::imread(args.imagePath);
+    std::cout << "Loading image: " << args.image_path << std::endl;
+    cv::Mat image = cv::imread(args.image_path);
     if (image.empty()) {
-      std::cerr << "Error: Could not load image: " << args.imagePath
+      std::cerr << "Error: Could not load image: " << args.image_path
                 << std::endl;
       return 1;
     }
 
     std::cout << "Running inference..." << std::endl;
-    std::vector<rfdetr::Detection> detections;
+    std::vector<detectiondata::Detection> detections;
     rfdetr::Timings timings;
-    model.predict(image, detections, timings, args.threshold, args.maxBoxes);
+    model.predict(image, detections, timings, args.threshold, args.max_boxes);
 
-    float processingTime =
-        timings.preprocess + timings.ortRun + timings.postprocess;
+    float processing_time =
+        timings.preprocess + timings.ort_run + timings.postprocess;
 
     std::cout << std::fixed << std::setprecision(2);
     std::cout << "\n--- Inference Results ---\n";
     std::cout << "Preprocessing:  " << timings.preprocess << " ms\n";
-    std::cout << "ORT Run:        " << timings.ortRun << " ms\n";
+    std::cout << "ORT Run:        " << timings.ort_run << " ms\n";
     std::cout << "Postprocessing: " << timings.postprocess << " ms\n";
     std::cout << "---------------------------------\n";
-    std::cout << "Processing (Pre+ORT+Post): " << processingTime << " ms\n";
-    std::cout << "Processing FPS:           " << (1000.0f / processingTime)
+    std::cout << "Processing (Pre+ORT+Post): " << processing_time << " ms\n";
+    std::cout << "Processing FPS:           " << (1000.0f / processing_time)
               << "\n";
     std::cout << "---------------------------------\n";
     std::cout << "Total Latency (inc. I/O):  " << timings.total << " ms\n";
@@ -109,8 +109,8 @@ int main(int argc, char **argv) {
     std::cout << "---------------------------------\n";
     std::cout << "Detections found: " << detections.size() << "\n";
 
-    std::cout << "Saving detections to: " << args.outputPath << std::endl;
-    model.saveDetections(image, detections, args.outputPath);
+    std::cout << "Saving detections to: " << args.output_path << std::endl;
+    model.saveDetections(image, detections, args.output_path);
 
     std::cout << "Done!\n";
 

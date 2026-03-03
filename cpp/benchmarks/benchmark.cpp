@@ -133,16 +133,16 @@ int main(int argc, char **argv) {
     rfdetr::Timings timings;
     model.predict(images[i % images.size()], dets, timings);
 
-    float total = timings.preprocess + timings.ortRun + timings.postprocess;
+    float total = timings.preprocess + timings.ort_run + timings.postprocess;
     pre_times.push_back(timings.preprocess);
-    ort_times.push_back(timings.ortRun);
+    ort_times.push_back(timings.ort_run);
     post_times.push_back(timings.postprocess);
     total_processing_times.push_back(total);
 
     if (verbose) {
       printf("Iteration %3d: Pre: %6.2fms, ORT: %6.2fms, Post: %6.2fms, Total: "
              "%6.2fms\n",
-             i + 1, timings.preprocess, timings.ortRun, timings.postprocess,
+             i + 1, timings.preprocess, timings.ort_run, timings.postprocess,
              total);
     } else if ((i + 1) % 10 == 0) {
       std::cout << "Iteration " << (i + 1) << "/" << numIterations << std::endl;

@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     cv::Mat frame;
     size_t frame_count = 0;
     while (cap.read(frame)) {
-      std::vector<detectiondata::Detection> detections;
+      std::vector<rfdetr::Detection> detections;
       rfdetr::Timings timings;
       model.predict(frame, detections, timings, args.threshold, args.max_boxes);
 

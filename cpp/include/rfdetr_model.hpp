@@ -28,7 +28,7 @@ struct Detection {
  */
 struct Timings {
   float preprocess = 0.0f;
-  float ortRun = 0.0f;
+  float ort_run = 0.0f;
   float postprocess = 0.0f;
   float total = 0.0f;
 };
@@ -97,9 +97,9 @@ private:
                    int originWidth, std::vector<Detection> &detections,
                    float confidenceThreshold, int maxNumberBoxes);
 
-  std::unique_ptr<OnnxRuntimeSession> ortSession_;
-  int inputHeight_;
-  int inputWidth_;
+  std::unique_ptr<OnnxRuntimeSession> ort_session_;
+  int input_height_;
+  int input_width_;
 
   static constexpr float MEANS[3] = {0.485f, 0.456f, 0.406f};
   static constexpr float STDS[3] = {0.229f, 0.224f, 0.225f};

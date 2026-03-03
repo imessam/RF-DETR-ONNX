@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     }
 
     std::cout << "Running inference..." << std::endl;
-    std::vector<detectiondata::Detection> detections;
+    std::vector<rfdetr::Detection> detections;
     rfdetr::Timings timings;
     model.predict(image, detections, timings, args.threshold, args.max_boxes);
 

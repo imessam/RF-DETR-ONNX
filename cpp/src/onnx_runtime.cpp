@@ -1,4 +1,5 @@
 #include "onnx_runtime.hpp"
+#include "logger.hpp"
 #include <algorithm>
 #include <thread>
 

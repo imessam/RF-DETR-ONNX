@@ -33,7 +33,7 @@ Holds per-stage inference timing in milliseconds.
 ```cpp
 struct Timings {
     float preprocess   = 0.0f;  // Image resize + normalize
-    float ortRun       = 0.0f;  // ONNX Runtime execution
+    float ort_run       = 0.0f;  // ONNX Runtime execution
     float postprocess  = 0.0f;  // Score filter + box decode + mask resize
     float total        = 0.0f;  // End-to-end wall time
 };
@@ -150,7 +150,7 @@ int main() {
     model.predict(image, detections, timings, 0.5f, 300);
 
     std::cout << "Found " << detections.size() << " detections\n";
-    std::cout << "ORT run: " << timings.ortRun << " ms\n";
+    std::cout << "ORT run: " << timings.ort_run << " ms\n";
 
     model.saveDetections(image, detections, "output/result.jpg");
     return 0;

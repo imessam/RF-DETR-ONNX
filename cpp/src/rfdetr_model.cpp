@@ -1,4 +1,5 @@
 #include "rfdetr_model.hpp"
+#include "logger.hpp"
 #include "utils.hpp"
 #include <algorithm>
 #include <chrono>
@@ -66,13 +67,18 @@ void RFDETRModel::preprocess(const cv::Mat &image, cv::Mat &output) {
 
 void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
                               int origin_height, int origin_width,
-                              std::vector<detectiondata::Detection> &detections,
+                              std::vector<Detection> &detections,
                               float confidence_threshold,
                               int max_number_boxes) {
   detections.clear();
 
   cv::Mat boxes = outputs[0];
   cv::Mat logits = outputs[1];
+  cv::Mat masks;
+
+  if (outputs.size() > 2) {
+    masks = outputs[2];
+  }
 
   boxes = boxes.reshape(1, {boxes.size[1], boxes.size[2]});
   logits = logits.reshape(1, {logits.size[1], logits.size[2]});
@@ -126,9 +132,9 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
       break; // All remaining scores are lower, no need to continue
     }
 
-    detectiondata::Detection det;
-    det.conf = score;
-    det.class_id = labels[idx];
+    Detection det;
+    det.score = score;
+    det.label = labels[idx];
 
     // Convert from cxcywh to xywh
     const float *box_row = boxes.ptr<float>(idx);
@@ -140,22 +146,37 @@ void RFDETRModel::postProcess(const std::vector<cv::Mat> &outputs,
     float x_left = cx - w * 0.5f;
     float y_top = cy - h * 0.5f;
 
-    det.normalized_box =
-        detectiondata::NormalizedBoundingBox(x_left, y_top, w, h);
-    det.box =
-        detectiondata::BoundingBox(static_cast<int>(x_left * origin_width),
-                                   static_cast<int>(y_top * origin_height),
-                                   static_cast<int>(w * origin_width),
-                                   static_cast<int>(h * origin_height));
+    det.normalizedBox = {x_left, y_top, w, h};
+    det.unnormalizedBox = {x_left * origin_width, y_top * origin_height,
+                           w * origin_width, h * origin_height};
+
+    // Process mask if available
+    if (!masks.empty()) {
+      int maskHeight = masks.size[2];
+      int maskWidth = masks.size[3];
+
+      if (idx < masks.size[1]) {
+        // Wrap mask (1, maskH, maskW)
+        int maskDims[] = {maskHeight, maskWidth};
+        cv::Mat maskRaw(2, maskDims, CV_32F,
+                        const_cast<float *>(masks.ptr<float>(0, idx)));
+
+        cv::Mat resizedMask;
+        cv::resize(maskRaw, resizedMask, cv::Size(origin_width, origin_height));
+
+        cv::Mat binaryMask;
+        cv::threshold(resizedMask, binaryMask, 0.0, 255.0, cv::THRESH_BINARY);
+        binaryMask.convertTo(det.mask, CV_8U);
+      }
+    }
 
     detections.push_back(det);
   }
 }
 
 void RFDETRModel::predict(const cv::Mat &image,
-                          std::vector<detectiondata::Detection> &detections,
-                          Timings &timings, float confidence_threshold,
-                          int max_number_boxes) {
+                          std::vector<Detection> &detections, Timings &timings,
+                          float confidence_threshold, int max_number_boxes) {
   auto start_total = std::chrono::high_resolution_clock::now();
 
   int origin_height = image.rows;
@@ -190,10 +211,9 @@ void RFDETRModel::predict(const cv::Mat &image,
       std::chrono::duration<float, std::milli>(end_total - start_total).count();
 }
 
-void RFDETRModel::saveDetections(
-    const cv::Mat &image,
-    const std::vector<detectiondata::Detection> &detections,
-    const std::string &save_path) const {
+void RFDETRModel::saveDetections(const cv::Mat &image,
+                                 const std::vector<Detection> &detections,
+                                 const std::string &save_path) const {
   cv::Mat result;
   drawDetections(image, detections, result);
   cv::imwrite(save_path, result);

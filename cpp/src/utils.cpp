@@ -4,8 +4,8 @@
 namespace rfdetr {
 
 void drawDetections(const cv::Mat &image,
-                    const std::vector<detectiondata::Detection> &detections,
-                    cv::Mat &output, double fps) {
+                    const std::vector<Detection> &detections, cv::Mat &output,
+                    double fps) {
   output = image.clone();
 
   // Derive a stable, visually distinct color per class using an integer hash.
@@ -16,13 +16,13 @@ void drawDetections(const cv::Mat &image,
   };
 
   for (const auto &det : detections) {
-    const auto &box = det.box;
-    cv::Scalar color = class_color(det.class_id);
+    const auto &box = det.unnormalizedBox;
+    cv::Scalar color = class_color(det.label);
 
     cv::rectangle(output, cv::Rect(box.x, box.y, box.width, box.height), color,
                   4);
 
-    std::string text = std::to_string(det.class_id);
+    std::string text = std::to_string(det.label);
     int baseline = 0;
     cv::Size text_size =
         cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseline);

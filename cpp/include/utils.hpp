@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rfdetr_model.hpp"
 #include <opencv2/opencv.hpp>
 #include <vector>
 
@@ -29,7 +30,7 @@ void boxCxcywhToXywh(const cv::Mat &boxes, cv::Mat &output);
  * @param fps       Optional FPS overlay; pass a negative value to skip.
  */
 void drawDetections(const cv::Mat &image,
-                    const std::vector<detectiondata::Detection> &detections,
-                    cv::Mat &output, double fps = -1.0);
+                    const std::vector<Detection> &detections, cv::Mat &output,
+                    double fps = -1.0);
 
 } // namespace rfdetr

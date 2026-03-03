@@ -14,6 +14,17 @@ models/
     └── rf-detr-nano.sim.onnx
 ```
 
+!!! tip "GPU users: convert to FP16 for best performance"
+    Converting your model to FP16 (float16) roughly halves model size and significantly boosts GPU throughput. Run once after downloading/exporting:
+
+    ```bash
+    uv run python tools/export_fp16.py \
+        --input models/rf-detr-nano/rf-detr-nano.sim.onnx \
+        --keep-io-types
+    ```
+
+    See [Tools → export_fp16.py](tools.md#export_fp16py) for all options.
+
 ---
 
 ## 2. CLI Inference

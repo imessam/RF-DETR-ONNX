@@ -60,14 +60,43 @@ private:
    */
   std::vector<std::string> getBestProviders(const std::string &device);
 
+  /**
+   * @brief Read and cache model input/output metadata from the session.
+   * @throws std::runtime_error on ONNX metadata extraction failure.
+   */
+  void cacheModelMetadata();
+
   Ort::Env env_;
   std::unique_ptr<Ort::Session> session_;
-  Ort::MemoryInfo memoryInfo_;
-  std::vector<int64_t> inputShape_;
-  std::string inputName_;
-  std::string activeProvider_;
-  std::vector<std::string> outputNames_; // Output names: boxes, scores, [masks]
-  size_t numOutputs_;
+
+  Ort::MemoryInfo memory_info_;
+  std::string active_provider_;
+
+  std::vector<int64_t> input_shape_;
+  std::string input_name_;
+  ONNXTensorElementDataType input_type_{ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT};
+
+  // output_names_ owns the string data; output_name_ptrs_ holds non-owning
+  // raw pointers into those strings for zero-alloc passing to Session::Run().
+  std::vector<std::string> output_names_;
+  std::vector<const char *> output_name_ptrs_;
+  size_t num_outputs_;
+
+  /**
+   * @brief Create an input Ort::Value with the correct element type.
+   *
+   * Dispatches to CreateTensor<float> or CreateTensor<uint16_t> (fp16)
+   * depending on what the model declared.
+   *
+   * @param data_f32  Source data always provided as float32.
+   *                  For fp16 models the data is converted internally.
+   * @param shape     Tensor shape.
+   * @param fp16_buf  Buffer that owns the converted fp16 data (when needed).
+   * @return Ort::Value ready for Session::Run().
+   */
+  Ort::Value createInputTensor(const float *data_f32, size_t element_count,
+                               const std::vector<int64_t> &shape,
+                               std::vector<uint16_t> &fp16_buf);
 };
 
 } // namespace rfdetr

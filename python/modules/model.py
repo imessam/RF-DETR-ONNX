@@ -38,8 +38,8 @@ class RFDETRModel:
             model_path (str): Path to the ONNX model file.
             device (str): Device preference ("gpu" or "cpu").
         """
-        self.ort_session = OnnxRuntimeSession(model_path, device=device)
-        input_shape = self.ort_session.get_input_shape()
+        self.ort_session_ = OnnxRuntimeSession(model_path, device=device)
+        input_shape = self.ort_session_.get_input_shape()
         self.input_height, self.input_width = input_shape[2:]
         
         # Pre-convert normalization constants for speed
@@ -187,7 +187,7 @@ class RFDETRModel:
         
         # 2. Inference
         start_run = time.perf_counter()
-        outputs = self.ort_session.run(input_tensor)
+        outputs = self.ort_session_.run(input_tensor)
         end_run = time.perf_counter()
         
         # 3. Post-process

@@ -1,14 +1,14 @@
+#define STRING(x) #x
+#define XSTRING(x) STRING(x)
+
 #include "rfdetr_model.hpp"
-#include <algorithm>
+#include "utils.hpp"
 #include <iostream>
-#include <map>
-#include <opencv2/opencv.hpp>
-#include <random>
 #include <string>
 
-void printUsage(const char *programName) {
+void print_usage(const char *program_name) {
   std::cout
-      << "Usage: " << programName << " [OPTIONS]\n"
+      << "Usage: " << program_name << " [OPTIONS]\n"
       << "Run video inference with a RF-DETR ONNX model.\n\n"
       << "Required arguments:\n"
       << "  --model PATH        Path to the ONNX model file\n"
@@ -23,30 +23,31 @@ void printUsage(const char *programName) {
 }
 
 struct Args {
-  std::string modelPath;
-  std::string videoPath;
-  std::string outputPath = "../output/output.mp4";
+  std::string _source_root = XSTRING(SOURCE_ROOT_DETECTION);
+  std::string model_path;
+  std::string video_path;
+  std::string output_path = _source_root + "/output/output.mp4";
   float threshold = rfdetr::DEFAULT_CONFIDENCE_THRESHOLD;
-  int maxBoxes = rfdetr::DEFAULT_MAX_NUMBER_BOXES;
+  int max_boxes = rfdetr::DEFAULT_MAX_NUMBER_BOXES;
   std::string device = "gpu";
 };
 
-bool parseArgs(int argc, char **argv, Args &args) {
+bool parse_args(int argc, char **argv, Args &args) {
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
 
     if (arg == "--help" || arg == "-h") {
       return false;
     } else if (arg == "--model" && i + 1 < argc) {
-      args.modelPath = argv[++i];
+      args.model_path = argv[++i];
     } else if (arg == "--video" && i + 1 < argc) {
-      args.videoPath = argv[++i];
+      args.video_path = argv[++i];
     } else if (arg == "--output" && i + 1 < argc) {
-      args.outputPath = argv[++i];
+      args.output_path = argv[++i];
     } else if (arg == "--threshold" && i + 1 < argc) {
       args.threshold = std::stof(argv[++i]);
     } else if (arg == "--max_boxes" && i + 1 < argc) {
-      args.maxBoxes = std::stoi(argv[++i]);
+      args.max_boxes = std::stoi(argv[++i]);
     } else if (arg == "--device" && i + 1 < argc) {
       args.device = argv[++i];
     } else {
@@ -55,11 +56,11 @@ bool parseArgs(int argc, char **argv, Args &args) {
     }
   }
 
-  if (args.modelPath.empty()) {
+  if (args.model_path.empty()) {
     std::cerr << "Error: --model is required\n";
     return false;
   }
-  if (args.videoPath.empty()) {
+  if (args.video_path.empty()) {
     std::cerr << "Error: --video is required\n";
     return false;
   }
@@ -67,80 +68,21 @@ bool parseArgs(int argc, char **argv, Args &args) {
   return true;
 }
 
-static void drawDetections(const cv::Mat &image,
-                           const std::vector<rfdetr::Detection> &detections,
-                           cv::Mat &output) {
-  output = image.clone();
-
-  // Generate a random color per unique label.
-  // Note: colors are re-randomized on each call; for stable per-label colors
-  // across frames, use a fixed seed or derive the color from the label index.
-  std::map<int, cv::Scalar> labelColors;
-  std::mt19937 gen(std::random_device{}());
-  std::uniform_int_distribution<> dis(0, 255);
-
-  for (const auto &det : detections) {
-    if (labelColors.find(det.label) == labelColors.end()) {
-      labelColors[det.label] = cv::Scalar(dis(gen), dis(gen), dis(gen));
-    }
-  }
-
-  // Draw semi-transparent masks if the model produced segmentation output.
-  // Note: this mirrors the logic in RFDETRModel::saveDetections; for shared
-  // use consider moving visualization into a common utility function.
-  bool hasMasks =
-      std::any_of(detections.begin(), detections.end(),
-                  [](const rfdetr::Detection &d) { return !d.mask.empty(); });
-
-  if (hasMasks) {
-    cv::Mat overlay = output.clone();
-
-    for (const auto &det : detections) {
-      if (det.mask.empty())
-        continue;
-
-      cv::Scalar color = labelColors[det.label];
-      cv::Mat colorMask(det.mask.size(), CV_8UC3);
-      colorMask.setTo(color, det.mask);
-
-      cv::addWeighted(overlay, 1.0, colorMask, 0.4, 0.0, overlay);
-    }
-
-    cv::addWeighted(output, 0.6, overlay, 0.4, 0.0, output);
-  }
-
-  for (const auto &det : detections) {
-    const auto &box = det.unnormalizedBox;
-    cv::Scalar color = labelColors[det.label];
-
-    cv::rectangle(output, box, color, 4);
-
-    std::string text = std::to_string(det.label);
-    int baseline = 0;
-    cv::Size textSize =
-        cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseline);
-
-    cv::Point textOrg(box.x + 5, box.y + textSize.height + 5);
-    cv::putText(output, text, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, color, 2);
-  }
-}
-
 int main(int argc, char **argv) {
   Args args;
 
-  if (!parseArgs(argc, argv, args)) {
-    printUsage(argv[0]);
-    // Return 1 only if required args are missing; 0 if user asked for help
-    return args.modelPath.empty() && args.videoPath.empty() ? 1 : 0;
+  if (!parse_args(argc, argv, args)) {
+    print_usage(argv[0]);
+    return args.model_path.empty() && args.video_path.empty() ? 1 : 0;
   }
 
   try {
     std::cout << "Initializing RF-DETR model..." << std::endl;
-    rfdetr::RFDETRModel model(args.modelPath, args.device);
+    rfdetr::RFDETRModel model(args.model_path, args.device);
 
-    cv::VideoCapture cap(args.videoPath);
+    cv::VideoCapture cap(args.video_path);
     if (!cap.isOpened()) {
-      std::cerr << "Error: Could not open video: " << args.videoPath
+      std::cerr << "Error: Could not open video: " << args.video_path
                 << std::endl;
       return 1;
     }
@@ -152,11 +94,11 @@ int main(int argc, char **argv) {
       fps = 30.0;
     }
 
-    int fourcc = cv::VideoWriter::fourcc('m', 'p', '4', 'v');
-    cv::VideoWriter writer(args.outputPath, fourcc, fps,
+    int fourcc = cv::VideoWriter::fourcc('a', 'v', 'c', '1');
+    cv::VideoWriter writer(args.output_path, fourcc, fps,
                            cv::Size(width, height));
     if (!writer.isOpened()) {
-      std::cerr << "Error: Could not open output video: " << args.outputPath
+      std::cerr << "Error: Could not open output video: " << args.output_path
                 << std::endl;
       return 1;
     }
@@ -164,23 +106,32 @@ int main(int argc, char **argv) {
     std::cout << "Processing video..." << std::endl;
 
     cv::Mat frame;
-    size_t frameCount = 0;
+    size_t frame_count = 0;
     while (cap.read(frame)) {
       std::vector<rfdetr::Detection> detections;
       rfdetr::Timings timings;
-      model.predict(frame, detections, timings, args.threshold, args.maxBoxes);
+      model.predict(frame, detections, timings, args.threshold, args.max_boxes);
 
       cv::Mat annotated;
-      drawDetections(frame, detections, annotated);
+      double current_fps = 1000.0 / timings.total;
+      rfdetr::drawDetections(frame, detections, annotated, current_fps);
       writer.write(annotated);
 
-      ++frameCount;
-      if (frameCount % 50 == 0) {
-        std::cout << "Processed " << frameCount << " frames..." << std::endl;
+      ++frame_count;
+      if (frame_count % 50 == 0) {
+        std::cout << "Processed " << frame_count << " frames..." << std::endl;
+        std::cout << "  - PRE:   " << timings.preprocess << " ms" << std::endl;
+        std::cout << "  - ORT:   " << timings.ort_run << " ms" << std::endl;
+        std::cout << "  - POST:  " << timings.postprocess << " ms" << std::endl;
+        std::cout << "  - TOTAL: " << timings.total << " ms ("
+                  << (1000.0 / timings.total) << " FPS)" << std::endl;
+      }
+      if (frame_count == 1000) {
+        break;
       }
     }
 
-    std::cout << "Done! Saved to: " << args.outputPath << std::endl;
+    std::cout << "Done! Saved to: " << args.output_path << std::endl;
     return 0;
 
   } catch (const std::exception &e) {
